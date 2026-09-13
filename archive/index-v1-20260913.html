@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slocabaia — Fashion, art, sound, collaboration.</title>
+<meta name="description" content="Slocabaia is a multidisciplinary platform blending fashion, art, sound, and collaboration. Paramaribo's finest, est. 2017.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   00 — TOKENS
+   Strict monochrome. No accent hue anywhere.
+   ============================================================ */
+:root{
+  --bg:#EFEDE9;      /* paper */
+  --bg-2:#E5E2DC;    /* raised panels */
+  --bg-3:#DAD6CF;    /* hairline fills */
+  --text:#0A0A0A;
+  --muted:#5C5A56;
+  --faint:#8E8A83;
+  --line:rgba(10,10,10,0.18);
+  --band:#0A0A0A;    /* the single inverted band = Lookbook header */
+
+  --gutter:clamp(20px, 4vw, 60px);
+  --max:1440px;
+  --nav-h:76px;
+
+  --ease:cubic-bezier(.16,1,.3,1);
+  --dur:.8s;
+
+  /* Black band at the foot of the hero that carries the slide counter */
+  --hero-foot:clamp(64px, 9vh, 104px);
+
+  --grade:grayscale(0.2) contrast(1.05) brightness(0.9);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Archivo','Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-weight:400;
+  font-size:15px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+::selection{background:#0A0A0A;color:#EFEDE9}
+
+/* Visible keyboard focus, nothing on mouse click */
+:focus-visible{outline:1px solid var(--text);outline-offset:4px}
+
+/* ---- Type primitives ------------------------------------- */
+.display{
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:-0.02em;
+  line-height:0.92;
+  margin:0;
+}
+.eyebrow{
+  font-size:11px;
+  line-height:1;
+  text-transform:uppercase;
+  letter-spacing:0.16em;
+  color:var(--muted);
+  font-weight:500;
+}
+.eyebrow--faint{color:var(--faint)}
+.body{
+  color:var(--muted);
+  font-weight:300;
+  font-size:15px;
+  line-height:1.6;
+  max-width:44ch;
+  margin:0;
+}
+
+/* ---- Text link with a drawn-in underline ------------------ */
+.link{
+  display:inline-flex;
+  align-items:center;
+  gap:.7em;
+  position:relative;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.16em;
+  font-weight:500;
+  color:var(--text);
+  padding-bottom:6px;
+}
+.link::after{
+  content:"";
+  position:absolute;
+  left:0;bottom:0;
+  height:1px;width:100%;
+  background:currentColor;
+  transform:scaleX(0);
+  transform-origin:left;
+  transition:transform .5s var(--ease);
+}
+.link:hover::after,.link:focus-visible::after{transform:scaleX(1)}
+.link .arw{display:inline-block;transition:transform .4s var(--ease)}
+.link:hover .arw,.link:focus-visible .arw{transform:translateX(5px)}
+
+/* ---- Layout ----------------------------------------------- */
+.wrap{
+  max-width:var(--max);
+  margin:0 auto;
+  padding-left:var(--gutter);
+  padding-right:var(--gutter);
+}
+.rule{height:1px;background:var(--line);border:0;margin:0}
+.section{border-top:1px solid var(--line)}
+
+/* ============================================================
+   01 — MEDIA + PLACEHOLDERS
+   Every .media is a swap target. Replace the .ph child with
+   <img src="..." alt="..."> and nothing else changes.
+   ============================================================ */
+.media{
+  position:relative;
+  overflow:hidden;
+  background:var(--bg-3);
+  isolation:isolate;
+}
+.media img{
+  width:100%;height:100%;
+  object-fit:cover;
+  filter:var(--grade);
+}
+/* Placeholder body: paper stock, faint directional light */
+.ph{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(120% 90% at 28% 12%, #E9E6E1 0%, #DCD8D1 42%, #CBC6BD 100%);
+}
+/* Film grain over every media block, placeholder or photo */
+.media::before{
+  content:"";
+  position:absolute;inset:0;
+  z-index:2;
+  pointer-events:none;
+  opacity:.5;
+  mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
+}
+/* Hairline crop marks inside placeholders, editorial tell */
+.ph::before{
+  content:"";
+  position:absolute;
+  left:16px;right:16px;top:16px;bottom:16px;
+  border:1px solid rgba(10,10,10,.08);
+}
+/* Folio caption. Lives inside .ph, so swapping in a photo removes it. */
+.ph__cap{
+  position:absolute;
+  left:16px;bottom:14px;
+  z-index:3;
+  font-size:10px;
+  letter-spacing:0.16em;
+  text-transform:uppercase;
+  color:var(--faint);
+}
+
+/* ============================================================
+   02 — NAV
+   ============================================================ */
+.nav{
+  position:fixed;
+  top:0;left:0;right:0;
+  z-index:60;
+  height:var(--nav-h);
+  display:flex;align-items:center;
+  background:transparent;
+  border-bottom:1px solid transparent;
+  transition:background .45s var(--ease), border-color .45s var(--ease);
+}
+.nav.is-solid{background:var(--bg);border-bottom-color:var(--line)}
+.nav__inner{
+  width:100%;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:24px;
+}
+.wordmark{
+  font-weight:800;
+  font-size:20px;
+  letter-spacing:-0.02em;
+  line-height:1;
+}
+.nav__right{display:flex;align-items:center;gap:clamp(18px,2.2vw,34px)}
+.nav__links{display:flex;align-items:center;gap:clamp(18px,2.2vw,34px)}
+.nav__links a{
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.16em;
+  color:var(--muted);
+  font-weight:500;
+  transition:color .3s var(--ease);
+}
+.nav__links a:hover{color:var(--text)}
+.acct{
+  width:22px;height:22px;
+  border:1px solid var(--line);
+  border-radius:50%;
+  display:grid;place-items:center;
+  transition:border-color .3s var(--ease);
+}
+.acct:hover{border-color:var(--text)}
+.acct svg{width:11px;height:11px;stroke:var(--muted);fill:none;stroke-width:1.2}
+.acct:hover svg{stroke:var(--text)}
+
+.burger{display:none;width:26px;height:12px;position:relative}
+.burger span{
+  position:absolute;left:0;right:0;height:1px;background:var(--text);
+  transition:transform .45s var(--ease),opacity .3s var(--ease);
+}
+.burger span:nth-child(1){top:0}
+.burger span:nth-child(2){bottom:0}
+body.menu-open .burger span:nth-child(1){transform:translateY(5.5px) rotate(45deg)}
+body.menu-open .burger span:nth-child(2){transform:translateY(-5.5px) rotate(-45deg)}
+
+.menu{
+  position:fixed;inset:0;z-index:55;
+  background:var(--bg);
+  display:flex;flex-direction:column;justify-content:center;
+  padding:var(--nav-h) 0 var(--gutter); /* inner .wrap owns the gutter */
+  opacity:0;visibility:hidden;
+  transition:opacity .5s var(--ease),visibility .5s;
+}
+body.menu-open .menu{opacity:1;visibility:visible}
+/* auto side margins on .wrap would cancel flex stretch, so pin the width */
+.menu .wrap{width:100%}
+.menu a{
+  display:block;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:-0.01em;
+  font-size:clamp(2rem,11vw,3.4rem);
+  line-height:1.05;
+  padding:6px 0;
+  border-bottom:1px solid var(--line);
+}
+.menu a:first-child{border-top:1px solid var(--line)}
+.menu__foot{margin-top:32px;color:var(--faint);font-size:11px;letter-spacing:0.16em;text-transform:uppercase}
+
+/* ============================================================
+   03 — HERO
+   ============================================================ */
+/* The photograph fills the hero below the nav. It is the one dark mass on a
+   light page, so the type on it is white. No scrim: the crop is anchored
+   bottom-left, which pins the photo's dark corner under the type at every
+   viewport shape, and the crest sits high-centre on the lit brick, which
+   measures 100% above luminance 150 there, so it can be the black mark. */
+.hero{
+  position:relative;
+  height:100svh;
+  min-height:600px;
+  background:var(--bg);
+  overflow:hidden;
+}
+.hero__media{
+  position:absolute;
+  inset:var(--nav-h) 0 0 0;
+  overflow:hidden;
+}
+.js .hero__media .ph,
+.js .hero__media img{will-change:transform}
+.hero__media .media{position:absolute;inset:0}
+.hero__media img{
+  object-position:0% 100%;
+  filter:grayscale(0.2) contrast(1.08) brightness(1.02);
+}
+/* Crest centred across the frame, printed on the wall */
+.hero__mark{
+  position:absolute;z-index:4;
+  left:0;right:0;top:30%;
+  transform:translateY(-50%);
+  text-align:center;
+  pointer-events:none;
+}
+.hero__crest{
+  display:inline-block;
+  width:clamp(120px,16vw,240px);
+  height:auto;
+}
+.hero__crest img{width:100%;height:auto}
+/* Type sits low-left, in the darkest part of the frame */
+.hero__inner{
+  position:relative;z-index:4;
+  height:100%;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding-top:var(--nav-h);
+  padding-bottom:calc(var(--hero-foot) + clamp(16px,3vh,40px));
+  color:#FFFFFF;
+}
+/* Hero type is the one place white ink is used on this light page */
+.hero .eyebrow{color:rgba(255,255,255,.74)}
+.hero .link{color:#FFFFFF}
+.hero .counter b{color:#FFFFFF}
+.hero .counter i{background:rgba(255,255,255,.32)}
+.hero .counter s{color:rgba(255,255,255,.55)}
+.hero .scrollcue{color:rgba(255,255,255,.74)}
+.hero .scrollcue svg{stroke:rgba(255,255,255,.74)}
+/* Capped so every line stays inside the dark corner. At 85px "different."
+   already hits 2% over luminance 140, at 92px 7%. Re-measure before enlarging. */
+.hero h1{
+  font-size:clamp(2.4rem,5.4vw,4.9rem);
+  line-height:0.9;
+  letter-spacing:-0.02em;
+}
+.hero h1 .out{
+  display:block;
+  color:transparent;
+  -webkit-text-stroke:1.5px #FFFFFF;
+  text-stroke:1.5px #FFFFFF;
+}
+/* The platform line, sized to stay inside the dark corner with the headline */
+.hero__lead{
+  margin:clamp(20px,2.6vw,30px) 0 0;
+  max-width:34ch;
+  font-weight:300;
+  font-size:clamp(13px,1.05vw,15px);
+  line-height:1.6;
+  color:rgba(255,255,255,.86);
+}
+.hero__cta{margin-top:clamp(20px,2.6vw,32px)}
+
+/* Lives inside .hero__inner, so it sits at the foot of the first screen */
+.hero__foot{
+  position:absolute;z-index:4;
+  left:var(--gutter);right:var(--gutter);
+  bottom:clamp(22px,3vw,38px);
+  display:flex;align-items:center;justify-content:space-between;
+  gap:20px;
+}
+.counter{display:flex;align-items:center;gap:14px}
+.counter b{
+  font-weight:500;font-size:11px;letter-spacing:0.16em;color:var(--text);
+}
+.counter i{
+  display:block;width:clamp(40px,7vw,84px);height:1px;background:var(--line);
+  transform-origin:left;
+}
+.counter s{color:var(--faint);text-decoration:none;font-size:11px;letter-spacing:0.16em}
+.scrollcue{
+  display:flex;align-items:center;gap:9px;
+  font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);
+}
+.scrollcue svg{width:9px;height:6px;stroke:var(--muted);fill:none;stroke-width:1.4;animation:nudge 2.2s var(--ease) infinite}
+@keyframes nudge{0%,62%,100%{transform:translateY(0)}78%{transform:translateY(4px)}}
+
+/* ============================================================
+   04 — OUR APPROACH
+   ============================================================ */
+.approach{display:grid;grid-template-columns:1fr 1fr;align-items:stretch}
+.approach__text{
+  background:var(--bg-2);
+  padding:clamp(52px,7vw,110px) clamp(28px,4vw,64px);
+  display:flex;flex-direction:column;justify-content:center;
+  gap:clamp(20px,2.4vw,30px);
+  align-items:flex-start;
+}
+/* Sized so the two written lines stay two lines inside the panel */
+.approach__text h2{font-size:clamp(1.6rem,2.4vw,2.2rem)}
+.approach__media{position:relative;min-height:clamp(360px,46vw,660px)}
+.approach__media .media{position:absolute;inset:0}
+
+/* ============================================================
+   05 — COLLECTION
+   ============================================================ */
+.sec-head{
+  display:flex;align-items:baseline;justify-content:space-between;
+  gap:20px;
+  padding-top:clamp(34px,4vw,56px);
+  padding-bottom:clamp(22px,2.6vw,34px);
+}
+/* 1px gaps rendered as hairlines by letting the grid bg show through */
+.cards{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:1px;
+  background:var(--line);
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+.card{
+  position:relative;
+  display:flex;flex-direction:column;
+  background:var(--bg);
+}
+.card__media{position:relative;aspect-ratio:3/4;overflow:hidden}
+/* Product shots are lit bright, so they take a lighter grade than the
+   workshop frame, but the same slight desaturation holds the set together */
+.card__media img{filter:grayscale(0.12) contrast(1.03)}
+.card__media .media{position:absolute;inset:0}
+.card__media .ph,.card__media img{transition:transform 1s var(--ease)}
+.card:hover .ph,.card:hover img,
+.card:focus-visible .ph,.card:focus-visible img{transform:scale(1.045)}
+.card__bar{
+  border-top:1px solid var(--line);
+  padding:16px clamp(14px,1.4vw,20px);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  font-size:11px;text-transform:uppercase;letter-spacing:0.16em;font-weight:500;
+}
+.card__bar .arw{color:var(--muted);transition:transform .4s var(--ease),color .3s var(--ease)}
+.card:hover .arw,.card:focus-visible .arw{transform:translateX(5px);color:var(--text)}
+
+/* ============================================================
+   05b — DISCIPLINES + WORK LIST
+   Same hairline logic as the process row, so the platform reads
+   as one system with the rest of the page.
+   ============================================================ */
+.pillars{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  border-top:1px solid var(--line);
+  margin-bottom:clamp(40px,5vw,72px);
+}
+.pillar{
+  padding:24px clamp(12px,1.4vw,22px) 4px;
+  border-left:1px solid var(--line);
+}
+.pillar:first-child{border-left:0;padding-left:0}
+
+.works{
+  border-bottom:1px solid var(--line);
+  margin-bottom:clamp(40px,5vw,72px);
+}
+.work{
+  display:grid;
+  grid-template-columns:minmax(74px,.44fr) 1fr minmax(64px,.24fr) 14px;
+  gap:clamp(14px,2.4vw,36px);
+  align-items:baseline;
+  padding:clamp(20px,2.6vw,34px) 0;
+  border-top:1px solid var(--line);
+}
+.work__type{
+  font-size:11px;letter-spacing:0.16em;text-transform:uppercase;
+  font-weight:500;color:var(--faint);
+}
+.work__title{
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:-0.01em;
+  line-height:1.04;
+  font-size:clamp(1.15rem,2.3vw,1.9rem);
+}
+.work__meta{
+  font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);
+}
+.work .arw{color:var(--faint);transition:transform .4s var(--ease),color .3s var(--ease)}
+.work:hover .arw,.work:focus-visible .arw{transform:translateX(5px);color:var(--text)}
+
+/* ============================================================
+   06 — CUSTOM MADE
+   ============================================================ */
+.custom{
+  display:grid;
+  grid-template-columns:minmax(280px,0.82fr) 1.18fr;
+  gap:clamp(40px,6vw,96px);
+  padding-top:clamp(52px,7vw,104px);
+  padding-bottom:clamp(52px,7vw,104px);
+  align-items:start;
+}
+.custom__text{display:flex;flex-direction:column;gap:clamp(20px,2.4vw,30px);align-items:flex-start}
+.custom__text h2{font-size:clamp(2rem,3.4vw,3rem)}
+.steps{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  border-top:1px solid var(--line);
+}
+.step{
+  padding:24px clamp(12px,1.3vw,20px) 4px;
+  border-left:1px solid var(--line);
+}
+.step:first-child{border-left:0;padding-left:0}
+.step__n{
+  display:block;
+  font-weight:300;
+  font-size:clamp(1.9rem,2.6vw,2.6rem);
+  line-height:1;
+  letter-spacing:-0.02em;
+  color:var(--text);
+}
+.step__l{
+  display:block;
+  margin-top:16px;
+  font-size:11px;text-transform:uppercase;letter-spacing:0.16em;font-weight:500;
+}
+.step__d{
+  margin:10px 0 0;
+  font-size:12.5px;line-height:1.55;font-weight:300;color:var(--muted);
+}
+
+/* ============================================================
+   07 — LOOKBOOK
+   ============================================================ */
+/* The one inverted band on the whole page */
+.inkband{
+  background:var(--band);
+  color:var(--bg);
+}
+.inkband .inner{
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  padding-top:14px;padding-bottom:14px;
+}
+.inkband span{
+  font-size:11px;text-transform:uppercase;letter-spacing:0.16em;font-weight:600;color:var(--bg);
+}
+.strip{
+  display:flex;
+  gap:1px;
+  background:var(--line);
+  overflow-x:auto;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+  cursor:grab;
+}
+.strip::-webkit-scrollbar{display:none}
+.strip.is-dragging{cursor:grabbing}
+.strip .media{
+  flex:0 0 auto;
+  height:clamp(340px,58vh,620px);
+}
+.strip .media:nth-child(1){width:clamp(230px,24vw,400px)}
+.strip .media:nth-child(2){width:clamp(150px,14vw,240px)}
+.strip .media:nth-child(3){width:clamp(260px,27vw,450px)}
+.strip .media:nth-child(4){width:clamp(140px,12vw,210px)}
+.strip .media:nth-child(5){width:clamp(200px,20vw,340px)}
+.strip .media:nth-child(6){width:clamp(230px,23vw,390px)}
+
+/* ============================================================
+   08 — FOOTER
+   ============================================================ */
+.footer{padding-top:clamp(56px,7vw,100px)}
+.footer__top{
+  display:grid;
+  grid-template-columns:1.25fr 0.9fr;
+  gap:clamp(30px,4vw,60px);
+  align-items:end;
+  padding-bottom:clamp(44px,5vw,72px);
+}
+.footer__mark{
+  font-weight:900;
+  letter-spacing:-0.03em;
+  line-height:0.86;
+  font-size:clamp(3rem,8vw,7rem);
+}
+.footer__mark sup{
+  font-size:0.16em;
+  vertical-align:super;
+  font-weight:500;
+  letter-spacing:0;
+  margin-left:.12em;
+}
+.footer__tag{color:var(--muted);font-weight:300;line-height:1.6}
+.footer__cols{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:clamp(20px,3vw,48px);
+  border-top:1px solid var(--line);
+  padding-top:clamp(26px,3vw,40px);
+  padding-bottom:clamp(40px,5vw,72px);
+}
+.footer__cols h4{margin:0 0 18px;font-size:11px;text-transform:uppercase;letter-spacing:0.16em;font-weight:500;color:var(--faint)}
+.footer__cols ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.footer__cols a,.footer__cols li{color:var(--muted);font-weight:300;font-size:14px}
+.footer__cols a{position:relative;transition:color .3s var(--ease)}
+.footer__cols a:hover{color:var(--text)}
+.footer__bar{
+  border-top:1px solid var(--line);
+  padding-top:20px;padding-bottom:26px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  color:var(--faint);
+  font-size:11px;letter-spacing:0.16em;text-transform:uppercase;
+}
+.footer__bar nav{display:flex;gap:clamp(14px,2vw,26px)}
+.footer__bar a:hover{color:var(--text)}
+
+/* ============================================================
+   09 — REVEALS
+   Different element types move differently. Stagger is applied
+   per section in JS so nothing fades in as one block.
+   ============================================================ */
+/* Everything below is gated on .js so the page is fully legible
+   with scripting off or if the script ever fails to run. */
+.js [data-r]{
+  opacity:0;
+  transition:opacity var(--dur) var(--ease), transform var(--dur) var(--ease), clip-path var(--dur) var(--ease);
+  transition-delay:var(--d,0ms);
+}
+.js [data-r="up"]{transform:translateY(26px)}
+.js [data-r="text"]{transform:translateY(14px)}
+.js [data-r="media"]{transform:scale(1.04);clip-path:inset(12% 0 0 0)}
+.js [data-r="rule"]{transform:scaleX(0);transform-origin:left;opacity:1}
+.js [data-r].in{opacity:1;transform:none;clip-path:inset(0 0 0 0)}
+
+/* Hero intro. Keyframes, not a JS-toggled class, so a throttled or
+   background tab can never leave the headline stuck at opacity 0. */
+.js .hero [data-h]{animation:heroIn 1s var(--ease) both;animation-delay:var(--d,0ms)}
+@keyframes heroIn{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+.js .hero__media .ph,.js .hero__media img{animation:heroScale 2.6s var(--ease) both}
+@keyframes heroScale{from{transform:scale(1.06)}to{transform:none}}
+
+/* ============================================================
+   10 — RESPONSIVE
+   ============================================================ */
+@media (max-width:1080px){
+  .steps{grid-template-columns:repeat(3,1fr)}
+  .step:nth-child(4){border-left:0;padding-left:0}
+  .step:nth-child(n+4){border-top:1px solid var(--line);margin-top:-1px;padding-top:24px}
+  .custom{grid-template-columns:1fr;gap:clamp(34px,5vw,56px)}
+}
+@media (max-width:900px){
+  .nav__links{display:none}
+  .burger{display:block}
+  /* A portrait viewport can only show a slice of a 1.73 frame. Shifted in a
+     little from the edge so the slice holds the laptop and the worker, which
+     measures 0.08% over luminance 140 under the headline and max 117 behind
+     the crest, so both still read. */
+  .hero__media img{object-position:15% 100%}
+  .approach{grid-template-columns:1fr}
+  .approach__media{min-height:clamp(320px,72vw,520px)}
+  .cards{grid-template-columns:repeat(2,1fr)}
+  .footer__top{grid-template-columns:1fr;align-items:start}
+}
+/* Short phones: keep the centred statement on one screen */
+@media (max-width:900px) and (max-height:740px){
+  .hero__crest{width:88px;margin-bottom:22px}
+  .hero__inner{
+    padding-top:calc(var(--nav-h) + 12px);
+    padding-bottom:calc(var(--hero-foot) + 8px);
+  }
+}
+@media (max-width:640px){
+  .pillars{grid-template-columns:repeat(2,1fr)}
+  .pillar:nth-child(3){border-left:0;padding-left:0}
+  .pillar:nth-child(n+3){border-top:1px solid var(--line);margin-top:-1px;padding-top:24px}
+  /* Type over the title, meta and arrow on one line under it */
+  .work{
+    grid-template-columns:1fr auto;
+    gap:8px clamp(14px,3vw,24px);
+  }
+  .work__type{grid-column:1 / -1}
+  .work__title{grid-column:1 / -1}
+  .work__meta{grid-column:1}
+  .work .arw{grid-column:2;justify-self:end}
+  .steps{grid-template-columns:repeat(2,1fr)}
+  .step:nth-child(3){border-left:0;padding-left:0}
+  .step:nth-child(4){border-left:1px solid var(--line);padding-left:clamp(12px,1.3vw,20px)}
+  .step:nth-child(5){border-left:0;padding-left:0}
+  .step:nth-child(n+3){border-top:1px solid var(--line);margin-top:-1px;padding-top:24px}
+  .footer__cols{grid-template-columns:1fr;gap:34px}
+  .footer__bar{flex-direction:column;align-items:flex-start;gap:12px}
+}
+@media (max-width:420px){
+  .cards{grid-template-columns:1fr}
+  .sec-head{flex-direction:row}
+}
+
+/* ============================================================
+   11 — REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+    scroll-behavior:auto !important;
+  }
+  .js [data-r]{opacity:1 !important;transform:none !important;clip-path:none !important}
+  .js .hero [data-h],.js .hero__media .ph,.js .hero__media img{animation:none !important;opacity:1 !important;transform:none !important}
+}
+</style>
+
+<!-- Motion is opt-in: without JS the page renders complete and static. -->
+<script>document.documentElement.classList.add('js');</script>
+</head>
+
+<body>
+
+<!-- ============================================================
+     NAV
+     ============================================================ -->
+<header class="nav" id="nav">
+  <div class="wrap nav__inner">
+    <a href="#top" class="wordmark">Slocabaia</a>
+
+    <div class="nav__right">
+      <nav class="nav__links" aria-label="Primary">
+        <a href="#about">About</a>
+        <a href="#projects">Projects</a>
+        <a href="#archive">Archive</a>
+        <a href="#shop">Shop</a>
+        <a href="#contact">Contact</a>
+      </nav>
+
+      <a href="#contact" class="acct" aria-label="Account">
+        <svg viewBox="0 0 12 12" aria-hidden="true">
+          <circle cx="6" cy="4.2" r="2.1"/>
+          <path d="M1.9 11c.5-2.2 2.1-3.3 4.1-3.3S9.6 8.8 10.1 11"/>
+        </svg>
+      </a>
+
+      <button class="burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="menu">
+        <span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="menu" id="menu" aria-hidden="true">
+  <div class="wrap">
+    <a href="#about">About</a>
+    <a href="#projects">Projects</a>
+    <a href="#archive">Archive</a>
+    <a href="#shop">Shop</a>
+    <a href="#contact">Contact</a>
+    <p class="menu__foot">info@slocabaia.com &nbsp;/&nbsp; Amsterdam, NL</p>
+  </div>
+</div>
+
+<main id="top">
+
+  <!-- ============================================================
+       HERO
+       ============================================================ -->
+  <section class="hero" id="hero">
+    <div class="hero__media">
+      <div class="media">
+        <img src="img/hero.jpg" alt="Slocabaia workshop, printing and finishing garments by hand." fetchpriority="high" decoding="async">
+      </div>
+    </div>
+
+    <!-- Crest centred on the frame. Black on the lit brick at desktop widths;
+         the narrow crop puts that spot in shadow, so phones get the white cut. -->
+    <div class="hero__mark">
+      <picture class="hero__crest" data-h style="--d:120ms">
+        <source media="(max-width:900px)" srcset="img/logo-white.png">
+        <img src="img/logo-black.png" alt="Slocabaia crest" decoding="async">
+      </picture>
+    </div>
+
+    <div class="hero__inner wrap">
+      <p class="eyebrow" data-h style="--d:240ms">Fashion &nbsp;/&nbsp; Art &nbsp;/&nbsp; Sound &nbsp;/&nbsp; Collaboration</p>
+
+      <!-- Four lines, so no line runs past the dark corner of the frame.
+           Copy is unchanged. -->
+      <h1 class="display" style="margin-top:clamp(18px,2vw,28px)">
+        <span data-h style="--d:340ms;display:block">Built</span>
+        <span data-h style="--d:400ms;display:block">different.</span>
+        <span class="out" data-h style="--d:480ms">Made for</span>
+        <span class="out" data-h style="--d:540ms">you.</span>
+      </h1>
+
+      <p class="hero__lead" data-h style="--d:580ms">
+        A multidisciplinary platform blending fashion, art, sound, and collaboration.
+      </p>
+
+      <div class="hero__cta" data-h style="--d:640ms">
+        <a class="link" href="#about">What we do <span class="arw" aria-hidden="true">&rarr;</span></a>
+      </div>
+
+      <div class="hero__foot">
+        <!-- Slide indicator -->
+        <div class="counter" data-h style="--d:700ms">
+          <b>01</b><i></i><s>04</s>
+        </div>
+        <div class="scrollcue" data-h style="--d:760ms">
+          Scroll
+          <svg viewBox="0 0 9 6" aria-hidden="true"><path d="M.7.8 4.5 4.6 8.3.8"/></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       ABOUT US — who we are, what we do
+       ============================================================ -->
+  <section class="approach section" id="about" data-stagger>
+    <div class="approach__text">
+      <p class="eyebrow" data-r="text">About us</p>
+      <h2 class="display" data-r="up">
+        Not a label.<br>A platform.
+      </h2>
+      <p class="body" data-r="text">
+        A multidisciplinary platform blending fashion, art, sound, and collaboration.
+      </p>
+      <p class="body" data-r="text">
+        Slocabaia staat voor authenticiteit, kwaliteit en individualiteit. Elk stuk wordt met
+        aandacht ontworpen en gemaakt. Geen massa, geen compromis.
+      </p>
+      <a class="link" href="#projects" data-r="text">See the work <span class="arw" aria-hidden="true">&rarr;</span></a>
+    </div>
+
+    <div class="approach__media">
+      <div class="media" data-r="media">
+        <img src="img/approach-stack.jpg" alt="A stack of folded Slocabaia tees beside the tote bag, in low afternoon light." loading="lazy" decoding="async">
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       THE FOUR DISCIPLINES — makes the platform claim concrete
+       ============================================================ -->
+  <section class="section" id="disciplines" data-stagger>
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow" data-r="text">What we do</p>
+      </div>
+
+      <div class="pillars">
+        <div class="pillar" data-r="up">
+          <span class="step__n">01</span>
+          <span class="step__l">Fashion</span>
+          <p class="step__d">Eigen collecties en custom stukken, in kleine oplages.</p>
+        </div>
+        <div class="pillar" data-r="up">
+          <span class="step__n">02</span>
+          <span class="step__l">Art</span>
+          <p class="step__d">Prints, artwork en visuals, gemaakt met makers uit ons netwerk.</p>
+        </div>
+        <div class="pillar" data-r="up">
+          <span class="step__n">03</span>
+          <span class="step__l">Sound</span>
+          <p class="step__d">Muziek en events die de collecties dragen.</p>
+        </div>
+        <div class="pillar" data-r="up">
+          <span class="step__n">04</span>
+          <span class="step__l">Collaboration</span>
+          <p class="step__d">Samen bouwen met artiesten, makers en merken.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PROJECTS, COLLABS & EVENTS
+       ADD A ROW: copy an <a class="work"> block and fill in the four cells.
+       ============================================================ -->
+  <section class="section" id="projects" data-stagger>
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow" data-r="text">Projects, collabs &amp; events</p>
+        <a class="link" href="#contact" data-r="text" style="padding-bottom:2px">Work with us</a>
+      </div>
+
+      <div class="works">
+        <a class="work" href="#archive" data-r="text">
+          <span class="work__type">Event</span>
+          <span class="work__title">Slocavibes '26 &mdash; We are going global</span>
+          <span class="work__meta">2026</span>
+          <span class="arw" aria-hidden="true">&rarr;</span>
+        </a>
+
+        <a class="work" href="#shop" data-r="text">
+          <span class="work__type">Project</span>
+          <span class="work__title">Hand painted denim</span>
+          <span class="work__meta">Ongoing</span>
+          <span class="arw" aria-hidden="true">&rarr;</span>
+        </a>
+
+        <a class="work" href="#contact" data-r="text">
+          <span class="work__type">Collab</span>
+          <span class="work__title">Let's build something</span>
+          <span class="work__meta">Open</span>
+          <span class="arw" aria-hidden="true">&rarr;</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       ARCHIVE — the visual record of the collabs and events
+       ============================================================ -->
+  <section id="archive" data-stagger>
+    <div class="inkband">
+      <div class="wrap inner">
+        <span>Archive</span>
+        <span>Follow us @slocabaia</span>
+      </div>
+    </div>
+
+    <!-- Contact-sheet strip. Drag on desktop, swipe on mobile. -->
+    <div class="strip" id="strip" tabindex="0" aria-label="Archive, scroll horizontally">
+      <!-- SWAP IMAGE: archive 01 --><div class="media" data-r="media"><div class="ph"><span class="ph__cap">Slocabaia / Fig. 06</span></div></div>
+      <!-- SWAP IMAGE: archive 02 --><div class="media" data-r="media"><div class="ph"><span class="ph__cap">Slocabaia / Fig. 07</span></div></div>
+      <!-- SWAP IMAGE: archive 03 --><div class="media" data-r="media"><div class="ph"><span class="ph__cap">Slocabaia / Fig. 08</span></div></div>
+      <!-- SWAP IMAGE: archive 04 --><div class="media" data-r="media"><div class="ph"><span class="ph__cap">Slocabaia / Fig. 09</span></div></div>
+      <!-- SWAP IMAGE: archive 05 --><div class="media" data-r="media"><div class="ph"><span class="ph__cap">Slocabaia / Fig. 10</span></div></div>
+      <!-- SWAP IMAGE: archive 06 --><div class="media" data-r="media"><div class="ph"><span class="ph__cap">Slocabaia / Fig. 11</span></div></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SHOP — deliberately the last thing on the page
+       ============================================================ -->
+  <section class="section" id="shop" data-stagger>
+    <div class="wrap sec-head">
+      <p class="eyebrow" data-r="text">Shop</p>
+      <a class="link" href="#shop" data-r="text" style="padding-bottom:2px">View all</a>
+    </div>
+
+    <div class="cards">
+      <a class="card" href="#shop" data-r="media">
+        <div class="card__media">
+          <div class="media">
+            <img src="img/product-pendant.jpg" alt="Gold plated SB monogram pendant on a curb chain." loading="lazy" decoding="async">
+          </div>
+        </div>
+        <div class="card__bar"><span>Pendants</span><span class="arw" aria-hidden="true">&rarr;</span></div>
+      </a>
+
+      <a class="card" href="#shop" data-r="media">
+        <div class="card__media">
+          <div class="media">
+            <img src="img/product-namechain.jpg" alt="Gold plated Slocabaia script name necklace." loading="lazy" decoding="async">
+          </div>
+        </div>
+        <div class="card__bar"><span>Name chains</span><span class="arw" aria-hidden="true">&rarr;</span></div>
+      </a>
+
+      <a class="card" href="#shop" data-r="media">
+        <div class="card__media">
+          <div class="media">
+            <img src="img/product-cap.jpg" alt="Black cap with embroidered SB monogram." loading="lazy" decoding="async">
+          </div>
+        </div>
+        <div class="card__bar"><span>Caps</span><span class="arw" aria-hidden="true">&rarr;</span></div>
+      </a>
+
+      <a class="card" href="#shop" data-r="media">
+        <div class="card__media">
+          <div class="media">
+            <img src="img/product-tote.jpg" alt="Black tote bag with the Slocabaia wordmark in blackletter." loading="lazy" decoding="async">
+          </div>
+        </div>
+        <div class="card__bar"><span>Totes</span><span class="arw" aria-hidden="true">&rarr;</span></div>
+      </a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       CUSTOM MADE
+       ============================================================ -->
+  <section class="section" id="custom" data-stagger>
+    <div class="wrap custom">
+      <div class="custom__text">
+        <p class="eyebrow" data-r="text">Custom made</p>
+        <h2 class="display" data-r="up">Your vision.<br>Our craft.</h2>
+        <p class="body" data-r="text">
+          Jij brengt het idee. Wij brengen het tot leven. Van schets tot eindproduct,
+          op jouw maat gemaakt.
+        </p>
+        <a class="link" href="#contact" data-r="text">Start your custom <span class="arw" aria-hidden="true">&rarr;</span></a>
+      </div>
+
+      <div class="steps">
+        <div class="step" data-r="up">
+          <span class="step__n">01</span>
+          <span class="step__l">Idea</span>
+          <p class="step__d">We bespreken jouw idee en inspiratie.</p>
+        </div>
+        <div class="step" data-r="up">
+          <span class="step__n">02</span>
+          <span class="step__l">Design</span>
+          <p class="step__d">We ontwerpen een uniek stuk op maat.</p>
+        </div>
+        <div class="step" data-r="up">
+          <span class="step__n">03</span>
+          <span class="step__l">Materials</span>
+          <p class="step__d">We kiezen de juiste stoffen en details voor jouw piece.</p>
+        </div>
+        <div class="step" data-r="up">
+          <span class="step__n">04</span>
+          <span class="step__l">Production</span>
+          <p class="step__d">Met vakmanschap maken we jouw stuk uniek.</p>
+        </div>
+        <div class="step" data-r="up">
+          <span class="step__n">05</span>
+          <span class="step__l">Delivery</span>
+          <p class="step__d">Jouw piece. Gemaakt voor jou, alleen voor jou.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer class="footer section" id="contact" data-stagger>
+  <div class="wrap">
+    <div class="footer__top">
+      <p class="footer__mark" data-r="up">Slocabaia<sup>&reg;</sup></p>
+      <p class="footer__tag" data-r="text">
+        Fashion, art, sound, collaboration.<br>
+        Paramaribo's finest, est. 2017.<br>
+        Made for the world.
+      </p>
+    </div>
+
+    <div class="footer__cols">
+      <div data-r="text">
+        <h4>Platform</h4>
+        <ul>
+          <li><a href="#about">About us</a></li>
+          <li><a href="#projects">Projects &amp; events</a></li>
+          <li><a href="#archive">Archive</a></li>
+        </ul>
+      </div>
+      <div data-r="text">
+        <h4>Shop</h4>
+        <ul>
+          <li><a href="#shop">Shop</a></li>
+          <li><a href="#custom">Custom</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </div>
+      <div data-r="text">
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:info@slocabaia.com">info@slocabaia.com</a></li>
+          <li>Amsterdam</li>
+          <li>NL</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer__bar">
+      <span>&copy; 2026 Slocabaia. All rights reserved.</span>
+      <nav aria-label="Legal">
+        <a href="#contact">Privacy</a>
+        <a href="#contact">Terms</a>
+        <a href="#contact">Shipping</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- Nav: transparent over hero, solid after 60px ---- */
+  var nav = document.getElementById('nav');
+  function onScrollNav() {
+    nav.classList.toggle('is-solid', window.scrollY > 60);
+  }
+  onScrollNav();
+
+  /* ---- Mobile menu ---- */
+  var burger = document.getElementById('burger');
+  var menu = document.getElementById('menu');
+  function setMenu(open) {
+    document.body.classList.toggle('menu-open', open);
+    burger.setAttribute('aria-expanded', String(open));
+    menu.setAttribute('aria-hidden', String(!open));
+    document.body.style.overflow = open ? 'hidden' : '';
+  }
+  burger.addEventListener('click', function () {
+    setMenu(!document.body.classList.contains('menu-open'));
+  });
+  menu.addEventListener('click', function (e) {
+    if (e.target.tagName === 'A') setMenu(false);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') setMenu(false);
+  });
+
+  var hero = document.getElementById('hero');
+
+  /* ---- Scroll reveals ----
+     Stagger is computed per section so the headline lands first,
+     then body copy, then media. Rules draw last.               */
+  var order = { text: 0, up: 0, rule: 1, media: 2 };
+  var sections = document.querySelectorAll('[data-stagger]');
+
+  if (reduce || !('IntersectionObserver' in window)) {
+    document.querySelectorAll('[data-r]').forEach(function (el) { el.classList.add('in'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var items = entry.target.querySelectorAll('[data-r]');
+        var i = 0;
+        items.forEach(function (el) {
+          var bump = (order[el.getAttribute('data-r')] || 0) * 90;
+          el.style.setProperty('--d', (i * 85 + bump) + 'ms');
+          el.classList.add('in');
+          i++;
+        });
+        io.unobserve(entry.target);
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+
+    sections.forEach(function (s) { io.observe(s); });
+  }
+
+  /* ---- Hero parallax, cheap rAF-throttled transform ---- */
+  var heroLayer = hero.querySelector('.hero__media .media');
+  var ticking = false;
+  function frame() {
+    ticking = false;
+    onScrollNav();
+    if (reduce || !heroLayer) return;
+    var y = window.scrollY;
+    if (y < window.innerHeight * 1.2) {
+      heroLayer.style.transform = 'translate3d(0,' + (y * 0.12) + 'px,0)';
+    }
+  }
+  window.addEventListener('scroll', function () {
+    if (!ticking) { ticking = true; requestAnimationFrame(frame); }
+  }, { passive: true });
+
+  /* ---- Lookbook: drag to scroll on pointer devices ---- */
+  var strip = document.getElementById('strip');
+  var down = false, startX = 0, startLeft = 0;
+  strip.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'touch') return; // let native touch scrolling do its job
+    down = true;
+    startX = e.clientX;
+    startLeft = strip.scrollLeft;
+    strip.classList.add('is-dragging');
+    strip.setPointerCapture(e.pointerId);
+  });
+  strip.addEventListener('pointermove', function (e) {
+    if (!down) return;
+    strip.scrollLeft = startLeft - (e.clientX - startX);
+  });
+  ['pointerup', 'pointercancel'].forEach(function (ev) {
+    strip.addEventListener(ev, function () {
+      down = false;
+      strip.classList.remove('is-dragging');
+    });
+  });
+  strip.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') strip.scrollLeft += 200;
+    if (e.key === 'ArrowLeft') strip.scrollLeft -= 200;
+  });
+})();
+</script>
+
+</body>
+</html>

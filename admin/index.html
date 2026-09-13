@@ -1,0 +1,1958 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#050505">
+<title>Slocabaia dashboard</title>
+<link rel="icon" href="/admin/icons/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="manifest" href="/admin/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/admin/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Slocabaia">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/hubot-sans@5/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/mona-sans@5/index.css">
+<style>
+/* ==========================================================================
+   SLOCABAIA DASHBOARD
+   Same noir/ember system as the site. Chart colours are validated for this
+   dark card surface (dataviz validator): series-1 and series-2 are a
+   warm/cool pair, status colours are reserved and always carry an icon.
+   ========================================================================== */
+:root{
+  color-scheme:dark;
+  --page:#050505;
+  --surface:#121212;
+  --surface-2:#1b1b1b;
+  --text:#f2efe8;
+  --text-2:#cfcabf;
+  --muted:#8c877e;
+  --line:rgb(242 239 232 / .12);
+  --line-soft:rgb(242 239 232 / .07);
+  --grid:#262624;
+  --axis:#3a3935;
+  --ember:#ff5e14;
+  --ember-hot:#ff8a4c;
+  --series-1:#d95926;
+  --series-2:#3987e5;
+  --good:#0ca30c;
+  --warning:#fab219;
+  --critical:#d03b3b;
+  --f-display:'Hubot Sans Variable','Hubot Sans','Arial Black',system-ui,sans-serif;
+  --f-text:'Mona Sans Variable','Mona Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --r:18px;
+  --pad:clamp(14px,3.4vw,28px);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{background:var(--page)}
+body{margin:0;min-height:100svh;background:var(--page);color:var(--text);font:15px/1.55 var(--f-text);-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.meta{font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.mark{font-family:var(--f-display);font-weight:900;font-size:13px;letter-spacing:.16em;text-transform:uppercase;margin:0}
+h1,h2,h3{margin:0;font-weight:700;letter-spacing:.01em}
+h2{font-size:17px}
+h3{font-size:15px}
+
+/* ---------- buttons ---------- */
+.pill{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:42px;padding:10px 20px;border-radius:999px;border:1px solid transparent;
+  background:var(--ember);color:#050505;font-weight:700;font-size:14px;white-space:nowrap;
+  transition:transform .3s cubic-bezier(.16,1,.3,1),background .2s,box-shadow .3s;
+}
+.pill:hover{transform:translateY(-1px);box-shadow:0 8px 26px rgb(255 94 20 / .25)}
+.pill:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.pill--ghost{background:transparent;color:var(--text);border-color:var(--line)}
+.pill--ghost:hover{background:rgb(242 239 232 / .06);box-shadow:none}
+.pill--small{min-height:34px;padding:6px 14px;font-size:13px}
+.link-btn{background:none;border:0;padding:4px 2px;color:var(--text-2);font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.link-btn:hover{color:var(--ember-hot)}
+.link-btn--danger:hover{color:#ff7a7a}
+
+/* ---------- fields ---------- */
+.field{display:grid;gap:6px;margin:0 0 14px}
+.field > span{font-size:13px;font-weight:600;color:var(--text-2)}
+.field small{font-weight:400;color:var(--muted)}
+input[type=email],input[type=password],input[type=text],input[type=search],input:not([type]),textarea,select{
+  width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--line);
+  background:var(--page);color:var(--text);font-size:15px;
+}
+textarea{resize:vertical;min-height:240px;line-height:1.6;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--ember);outline-offset:1px;border-color:transparent}
+
+/* ---------- login ---------- */
+.login{min-height:100svh;display:grid;place-items:center;padding:24px}
+.login form{width:min(400px,100%);background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r);padding:30px 26px}
+.login h1{font-family:var(--f-display);font-weight:900;font-size:30px;text-transform:uppercase;margin:10px 0 22px}
+.login .pill{width:100%;margin-top:6px}
+.error{margin:14px 0 0;min-height:1.2em;color:#ff8c8c;font-size:14px}
+
+/* ---------- shell ---------- */
+.top{
+  position:sticky;top:0;z-index:20;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px var(--pad);border-bottom:1px solid var(--line-soft);
+  background:rgb(5 5 5 / .86);backdrop-filter:blur(12px);
+}
+.top__brand{display:flex;align-items:baseline;gap:10px}
+.wrap{max-width:1180px;margin:0 auto;padding:18px var(--pad) 60px}
+.tabs{display:flex;gap:4px;padding:4px;background:var(--surface);border:1px solid var(--line-soft);border-radius:999px;width:max-content;max-width:100%;overflow-x:auto;margin:0 0 18px}
+.tab{border:0;background:transparent;color:var(--text-2);padding:9px 16px;border-radius:999px;font-weight:600;font-size:14px;white-space:nowrap}
+.tab[aria-selected=true]{background:var(--ember);color:#050505}
+.notice{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;border:1px solid rgb(250 178 25 / .35);background:rgb(250 178 25 / .08);color:var(--text-2);font-size:14px;margin:0 0 16px}
+.notice svg{flex:0 0 auto;width:18px;height:18px;margin-top:1px;color:var(--warning)}
+.notice strong{color:var(--text)}
+
+.card{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r);padding:18px 18px 16px;min-width:0}
+.card__head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;margin:0 0 12px}
+.card__sub{margin:2px 0 0;color:var(--muted);font-size:13px}
+.stack{display:grid;gap:14px}
+.grid-2{display:grid;gap:14px}
+@media (min-width:980px){ .grid-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} }
+
+/* ---------- filter row ---------- */
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px}
+.seg{display:inline-flex;padding:3px;border:1px solid var(--line);border-radius:999px}
+.seg button{border:0;background:transparent;color:var(--text-2);padding:6px 13px;border-radius:999px;font-size:13px;font-weight:600}
+.seg button[aria-pressed=true]{background:var(--text);color:#050505}
+
+/* ---------- figures ---------- */
+.overview.is-loading .figs,.overview.is-loading .charts{opacity:.55;transition:opacity .2s}
+.figs{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:0 0 14px}
+.hero-fig{grid-column:1 / -1}
+@media (min-width:980px){ .hero-fig{grid-column:span 2} }
+.fig__label{margin:0;color:var(--text-2);font-size:13px;font-weight:600}
+.fig__value{margin:4px 0 0;font-weight:650;font-size:30px;line-height:1.1;letter-spacing:-.01em}
+.hero-fig .fig__value{font-size:clamp(48px,9vw,64px)}
+.fig__note{margin:6px 0 0;color:var(--muted);font-size:13px}
+.delta{display:flex;flex-wrap:wrap;gap:4px 14px;margin:8px 0 0;font-size:13px;color:var(--text-2)}
+.delta span{display:inline-flex;align-items:center;gap:5px}
+.delta svg{width:12px;height:12px}
+.delta .up{color:var(--good)}
+
+/* ---------- charts ---------- */
+.charts{display:grid;gap:14px}
+@media (min-width:980px){ .charts{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} }
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0;padding:0;list-style:none;font-size:13px;color:var(--text-2)}
+.legend li{display:inline-flex;align-items:center;gap:7px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.chart{position:relative;min-height:214px}
+.chart__svg{display:block;touch-action:pan-y}
+.chart__svg:focus-visible{outline:2px solid var(--ember);outline-offset:4px;border-radius:6px}
+.chart .grid{stroke:var(--grid);stroke-width:1}
+.chart .axis{stroke:var(--axis);stroke-width:1}
+.chart .tick{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+.chart .peak{fill:var(--text-2);font-size:11px;font-weight:600}
+.chart .band{fill:rgb(242 239 232 / .05)}
+.chart .bar.is-active{filter:brightness(1.3)}
+.empty{margin:0;padding:48px 8px;text-align:center;color:var(--muted);font-size:14px}
+.tip{
+  position:absolute;top:0;z-index:5;pointer-events:none;min-width:130px;
+  transform:translateY(calc(-100% - 6px));
+  padding:9px 11px;border-radius:10px;background:#1f1f1f;border:1px solid var(--line);
+  box-shadow:0 10px 30px rgb(0 0 0 / .5);font-size:13px;
+}
+.tip__date{color:var(--muted);font-size:12px;margin:0 0 4px}
+.tip__row{display:flex;align-items:center;gap:8px}
+.tip__row strong{color:var(--text);font-variant-numeric:tabular-nums}
+.tip__row span:last-child{color:var(--text-2)}
+.tip__key{width:12px;height:2px;border-radius:1px;flex:0 0 auto}
+.foot-note{margin:12px 0 0;color:var(--muted);font-size:12px}
+
+/* ---------- tables ---------- */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.email{overflow-wrap:anywhere}
+.data td,.data th{padding:6px 10px}
+.row-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+
+/* on a phone a row becomes a small block: the email or subject gets the full width */
+@media (max-width:640px){
+  .stack-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .stack-table tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-soft)}
+  .stack-table td{padding:0;border:0}
+  .stack-table td:empty{display:none}
+  .stack-table td:nth-child(1){grid-area:a;font-weight:600}
+  .stack-table td:nth-child(2){grid-area:b}
+  .stack-table td:nth-child(3){grid-area:c}
+  .stack-table td:nth-child(4){grid-area:d}
+  .stack-table td:nth-child(5){grid-area:e}
+  .m-table tr{grid-template-areas:"a d" "b c"}
+  .m-table td:nth-child(3){text-align:right;color:var(--muted);font-size:13px}
+  .c-table tr{grid-template-areas:"a a" "b d" "c e"}
+  .c-table td:nth-child(3){text-align:left;color:var(--text-2);font-size:13px}
+  .c-table td:nth-child(4){text-align:right;color:var(--muted);font-size:13px}
+}
+
+/* status: reserved colours, always with an icon and a label */
+.status{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;white-space:nowrap}
+.status svg{width:14px;height:14px}
+.status--good{color:var(--good)}
+.status--warning{color:var(--warning)}
+.status--critical{color:#ff7373}
+.status--muted{color:var(--muted)}
+
+/* ---------- composer ---------- */
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 0}
+.saved{margin:10px 0 0;min-height:1.2em;font-size:13px;color:var(--text-2)}
+.syntax{margin:0 0 14px;font-size:13px;color:var(--muted)}
+.syntax summary{cursor:pointer;color:var(--text-2)}
+.syntax code{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--text);background:var(--surface-2);padding:1px 5px;border-radius:5px}
+.preview-frame{width:100%;height:clamp(420px,70vh,720px);border:1px solid var(--line-soft);border-radius:12px;background:#050505}
+
+/* ---------- members ---------- */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.toolbar input{flex:1 1 220px;width:auto}
+.toolbar select{flex:0 0 auto;width:auto}
+.more{margin:12px 0 0}
+
+/* ---------- dialogs ---------- */
+dialog{width:min(440px,calc(100% - 32px));padding:24px;border-radius:var(--r);border:1px solid var(--line);background:#151515;color:var(--text)}
+dialog::backdrop{background:rgb(2 2 2 / .75);backdrop-filter:blur(6px)}
+dialog h2{font-size:20px;margin:0 0 8px}
+dialog p{color:var(--text-2);margin:0 0 14px}
+dialog .actions{justify-content:flex-end;margin-top:16px}
+.toast{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:50;padding:11px 18px;border-radius:999px;background:var(--text);color:#050505;font-weight:600;font-size:14px;box-shadow:0 12px 30px rgb(0 0 0 / .5);max-width:calc(100% - 32px)}
+
+/* ---------- header actions: the bell and its popup ---------- */
+.top__actions{display:flex;align-items:center;gap:10px}
+.bell{position:relative;width:40px;height:40px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--text);display:grid;place-items:center}
+.bell:hover,.bell[aria-expanded=true]{border-color:var(--text-2)}
+.bell svg{width:18px;height:18px}
+.bell__n{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:var(--ember);color:#050505;font-size:11px;font-weight:800;line-height:19px;text-align:center}
+.pop{position:fixed;z-index:40;top:68px;right:max(12px,var(--pad));width:min(390px,calc(100% - 24px));max-height:min(72vh,560px);overflow:auto;background:#161616;border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 50px rgb(0 0 0 / .6);padding:12px}
+.pop__head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:2px 4px 10px}
+.pop__head h2{font-size:15px}
+.pop__list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.pop__item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px;border-radius:12px;background:var(--surface)}
+.pop__item.is-unread{box-shadow:inset 3px 0 0 var(--ember)}
+.pop__open{display:grid;gap:3px;min-width:0;padding:2px 4px;background:none;border:0;text-align:left}
+.pop__who{display:flex;justify-content:space-between;gap:8px;font-size:14px;min-width:0}
+.pop__who strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pop__when{color:var(--muted);font-size:12px;white-space:nowrap}
+.pop__snip{color:var(--text-2);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pop__gmail{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:6px 11px;border-radius:999px;border:1px solid var(--line);font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap}
+.pop__gmail:hover{border-color:var(--ember);color:var(--ember-hot)}
+.pop__gmail svg{width:14px;height:14px}
+.pop .empty{padding:22px 8px}
+.tab__n{display:inline-block;min-width:18px;height:18px;margin-left:6px;padding:0 5px;border-radius:999px;background:var(--ember);color:#050505;font-size:11px;font-weight:800;line-height:18px;text-align:center;vertical-align:1px}
+.tab[aria-selected=true] .tab__n{background:#050505;color:var(--ember)}
+
+/* ---------- messages ---------- */
+.push-card{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin:0 0 14px}
+.push-card > div:first-child{flex:1 1 300px}
+.push-card .actions{margin:0;align-items:center}
+.msgs{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.msg{border:1px solid var(--line-soft);border-radius:14px;background:var(--page)}
+.msg.is-unread{border-color:rgb(255 94 20 / .45)}
+.msg__head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:4px 10px;width:100%;padding:12px 14px;background:none;border:0;border-radius:14px;text-align:left}
+.msg__dot{width:8px;height:8px;border-radius:50%}
+.msg.is-unread .msg__dot{background:var(--ember)}
+.msg__who{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;min-width:0}
+.msg__who strong{font-size:15px}
+.msg__who span{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.msg__when{color:var(--muted);font-size:12px;white-space:nowrap}
+.msg__snip{grid-column:2 / -1;color:var(--text-2);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msg.is-open .msg__snip{display:none}
+.msg__head .status{grid-column:2 / -1}
+.msg__body{padding:0 14px 14px 32px}
+.msg__text{margin:0 0 14px;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text);line-height:1.6}
+.msg__body .actions{align-items:center}
+.pill svg{width:15px;height:15px}
+
+/* ---------- sheets: install the app, turn on notifications ---------- */
+dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
+.sheet__body{position:relative;padding:22px 20px 18px}
+.sheet__close{position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--text-2);display:grid;place-items:center}
+.sheet__close svg{width:14px;height:14px}
+.sheet__head{display:flex;align-items:center;gap:12px;margin:0 40px 12px 0}
+.sheet__head h2{font-size:19px;margin:0}
+.sheet__app{width:48px;height:48px;border-radius:12px;flex:0 0 auto}
+.sheet__bell{display:grid;place-items:center;background:var(--ember);color:#050505}
+.sheet__bell svg{width:22px;height:22px}
+.sheet__lead{color:var(--text-2);margin:0 0 14px}
+.sheet__tabs{margin:0 0 14px}
+.sheet__tabs button[aria-selected=true]{background:var(--text);color:#050505}
+.steps{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:10px}
+.steps li{display:flex;gap:12px;align-items:flex-start;color:var(--text-2);font-size:14px}
+.steps strong{color:var(--text)}
+.step__ico{flex:0 0 auto;width:30px;height:30px;border-radius:9px;background:var(--surface-2);display:grid;place-items:center;color:var(--text)}
+.step__ico svg{width:15px;height:15px}
+.sheet__note{color:var(--muted);font-size:13px;margin:8px 0 0}
+.sheet__more{margin:12px 0 0;color:var(--text-2);font-size:14px}
+.sheet__more summary{cursor:pointer;margin:0 0 10px}
+.sheet__actions{margin-top:16px}
+.mock{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:16px;background:#232323;margin:0 0 12px}
+.mock img{width:36px;height:36px;border-radius:8px}
+.mock > div{display:grid;gap:2px;font-size:13px;min-width:0}
+.mock__app{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;letter-spacing:.08em}
+.mock__txt{color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- website ---------- */
+.hero-prev{aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--line-soft)}
+.hero-prev video,.hero-prev img{display:block;width:100%;height:100%;object-fit:cover}
+.still-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 14px;margin:12px 0 0}
+.still-row p{margin:0;flex:1 1 240px;color:var(--text-2);font-size:13px}
+.still-row strong{color:var(--text)}
+.progress{margin:14px 0 0}
+.progress__bar{height:6px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.progress__bar i{display:block;height:100%;width:0;background:var(--ember);transition:width .4s}
+.site-actions{margin-top:16px}
+.site-hint{margin:12px 0 0}
+.g-status{margin:0 0 10px}
+.pill:focus-within{outline:2px solid var(--ember);outline-offset:2px}
+.is-disabled{opacity:.45;pointer-events:none}
+.photos{list-style:none;margin:0;padding:0;display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.photo{display:grid;gap:8px;align-content:start;padding:8px;border-radius:12px;background:var(--page);border:1px solid var(--line-soft);min-width:0}
+.photo img{display:block;width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;background:#000}
+.photo .field{margin:0;gap:4px}
+.photo .field > span{font-size:12px}
+.photo input{padding:8px 10px;font-size:13px;border-radius:10px}
+.photo__bar{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.photo__move{display:flex;gap:6px}
+.icon-btn{width:34px;height:34px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--text-2);display:grid;place-items:center}
+.icon-btn:hover{color:var(--text);border-color:var(--text-2)}
+.icon-btn:disabled{opacity:.3;cursor:not-allowed}
+.icon-btn svg{width:14px;height:14px}
+
+@media (max-width:560px){
+  .card{padding:16px 14px 14px}
+  /* four tabs share the width, so none of them hides off screen */
+  .tabs{width:100%}
+  .tab{flex:1 1 auto;padding:9px 6px;font-size:13px}
+  .tab__n{margin-left:4px}
+  .top .pill--small{padding:6px 12px}
+  /* iOS zooms into any field under 16px */
+  input[type=email],input[type=password],input[type=text],input[type=search],input:not([type]),textarea,select,.photo input{font-size:16px}
+  .top .meta{display:none}
+}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+
+<!-- ======================================================================
+     LOGIN
+     ====================================================================== -->
+<main class="login" id="login" hidden>
+  <form id="login-form" novalidate>
+    <p class="mark">Slocabaia</p>
+    <h1>Dashboard</h1>
+    <label class="field"><span>E-mail</span>
+      <input id="l-email" type="email" autocomplete="username" required>
+    </label>
+    <label class="field"><span>Wachtwoord</span>
+      <input id="l-pass" type="password" autocomplete="current-password" required>
+    </label>
+    <button class="pill" type="submit">Inloggen</button>
+    <p class="error" id="l-error" role="alert"></p>
+  </form>
+</main>
+
+<!-- ======================================================================
+     APP
+     ====================================================================== -->
+<div id="app" hidden>
+  <header class="top">
+    <div class="top__brand"><p class="mark">Slocabaia</p><span class="meta">Dashboard</span></div>
+    <div class="top__actions">
+      <button class="bell" id="bell" type="button" aria-label="Meldingen" aria-haspopup="dialog" aria-expanded="false" aria-controls="pop">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a4 4 0 1 1 8 0c0 3.6 1.6 5 1.6 5H2.4S4 10.6 4 7"/><path d="M6.7 13.8a1.4 1.4 0 0 0 2.6 0"/></svg>
+        <span class="bell__n" id="bell-n" hidden>0</span>
+      </button>
+      <button class="pill pill--ghost pill--small" id="logout" type="button">Uitloggen</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="notice" id="testmode" hidden>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.8 15 14H1z"/><path d="M8 6.2v3.6M8 11.6v.4"/></svg>
+      <span><strong>Testmodus.</strong> Er gaat nog geen mail echt de deur uit: elke e-mail wordt bewaard in de map
+      <code>data/outbox</code>. Zet <code>RESEND_API_KEY</code> en <code>MAIL_FROM</code> om echt te versturen.</span>
+    </div>
+
+    <nav class="tabs" role="tablist" aria-label="Onderdelen">
+      <button class="tab" role="tab" id="tab-overview" aria-controls="view-overview" data-view="overview">Overzicht</button>
+      <button class="tab" role="tab" id="tab-messages" aria-controls="view-messages" data-view="messages">Berichten<span class="tab__n" id="tab-n" hidden></span></button>
+      <button class="tab" role="tab" id="tab-news" aria-controls="view-news" data-view="news">Nieuwsbrief</button>
+      <button class="tab" role="tab" id="tab-members" aria-controls="view-members" data-view="members">Leden</button>
+      <button class="tab" role="tab" id="tab-site" aria-controls="view-site" data-view="site">Website</button>
+    </nav>
+
+    <!-- ================================================================ OVERVIEW -->
+    <section class="overview" id="view-overview" role="tabpanel" aria-labelledby="tab-overview">
+      <div class="filters" role="group" aria-label="Periode">
+        <span class="meta">Periode</span>
+        <div class="seg" id="range">
+          <button type="button" data-days="7">7 dagen</button>
+          <button type="button" data-days="30">30 dagen</button>
+          <button type="button" data-days="90">90 dagen</button>
+        </div>
+      </div>
+
+      <div class="figs">
+        <div class="card hero-fig">
+          <p class="fig__label">Actieve leden</p>
+          <p class="fig__value" id="f-active">0</p>
+          <p class="delta" id="f-delta"></p>
+        </div>
+        <div class="card">
+          <p class="fig__label">Wacht op bevestiging</p>
+          <p class="fig__value" id="f-pending">0</p>
+          <p class="fig__note">Aangemeld, link nog niet aangeklikt</p>
+        </div>
+        <div class="card">
+          <p class="fig__label">Paginaweergaven</p>
+          <p class="fig__value" id="f-views">0</p>
+          <p class="fig__note" id="f-views-note"></p>
+        </div>
+        <div class="card">
+          <p class="fig__label">Nieuwsbrieven verstuurd</p>
+          <p class="fig__value" id="f-sent">0</p>
+          <p class="fig__note" id="f-sent-note"></p>
+        </div>
+        <div class="card">
+          <p class="fig__label">Afgemeld</p>
+          <p class="fig__value" id="f-unsub">0</p>
+          <p class="fig__note">Sinds de start</p>
+        </div>
+      </div>
+
+      <div class="charts">
+        <figure class="card" style="margin:0">
+          <div class="card__head">
+            <div><h3>Paginaweergaven per dag</h3><p class="card__sub" id="c1-sub"></p></div>
+            <button class="link-btn" type="button" data-toggle="c1">Toon als tabel</button>
+          </div>
+          <div class="chart" id="c1"></div>
+        </figure>
+        <figure class="card" style="margin:0">
+          <div class="card__head">
+            <div><h3>Nieuwe en vertrokken leden</h3><p class="card__sub">Nieuw boven de lijn, afgemeld eronder</p></div>
+            <button class="link-btn" type="button" data-toggle="c2">Toon als tabel</button>
+          </div>
+          <ul class="legend" id="c2-legend"></ul>
+          <div class="chart" id="c2"></div>
+        </figure>
+      </div>
+      <p class="foot-note">Paginaweergaven worden geteld zonder cookies: de server telt per dag hoe vaak de pagina opent, zonder IP-adres of andere gegevens. Bots en link-previews tellen niet mee.</p>
+    </section>
+
+    <!-- ================================================================ MESSAGES -->
+    <section id="view-messages" role="tabpanel" aria-labelledby="tab-messages" hidden>
+      <div id="push-card"></div>
+      <section class="card">
+        <div class="card__head">
+          <div><h2>Berichten</h2><p class="card__sub" id="msg-sub"></p></div>
+          <a class="link-btn" id="gmail-inbox" href="https://mail.google.com/mail/" target="_blank" rel="noopener">Open Gmail</a>
+        </div>
+        <ul class="msgs" id="msg-list"></ul>
+        <p class="empty" id="msg-empty" hidden>Nog geen berichten. Ze komen binnen via het contactformulier op de site.</p>
+      </section>
+    </section>
+
+    <!-- ================================================================ NEWSLETTER -->
+    <section id="view-news" role="tabpanel" aria-labelledby="tab-news" hidden>
+      <div class="grid-2">
+        <form class="card" id="composer" novalidate>
+          <div class="card__head"><h2 id="composer-title">Nieuwe nieuwsbrief</h2>
+            <button class="link-btn" type="button" id="c-new" hidden>Nieuwe beginnen</button></div>
+          <label class="field"><span>Onderwerp</span>
+            <input id="c-subject" maxlength="200" autocomplete="off" required>
+          </label>
+          <label class="field"><span>Voorbeeldtekst <small>zichtbaar naast het onderwerp in de inbox</small></span>
+            <input id="c-pre" maxlength="200" autocomplete="off">
+          </label>
+          <label class="field"><span>Bericht</span>
+            <textarea id="c-body" rows="14" spellcheck="true"></textarea>
+          </label>
+          <details class="syntax"><summary>Opmaak</summary>
+            <p><code># Kop</code> &nbsp; <code>## Tussenkop</code> &nbsp; <code>**vet**</code> &nbsp; <code>[tekst](https://link)</code> &nbsp; <code>- lijstje</code>.
+            Een lege regel begint een nieuwe alinea. Onderaan elke mail staat automatisch een afmeldlink.</p>
+          </details>
+          <div class="actions">
+            <button class="pill pill--ghost" type="button" id="c-save">Concept opslaan</button>
+            <button class="pill pill--ghost" type="button" id="c-test">Test naar mij</button>
+            <button class="pill" type="button" id="c-send">Versturen</button>
+          </div>
+          <p class="saved" id="c-status" role="status"></p>
+        </form>
+
+        <section class="card">
+          <div class="card__head"><h2>Voorbeeld</h2><span class="card__sub">Zo ziet de mail eruit</span></div>
+          <iframe class="preview-frame" id="c-preview" sandbox title="Voorbeeld van de nieuwsbrief"></iframe>
+        </section>
+      </div>
+
+      <section class="card" style="margin-top:14px">
+        <div class="card__head"><h2>Verstuurd en concepten</h2></div>
+        <div class="table-wrap">
+          <table class="stack-table c-table">
+            <thead><tr><th>Onderwerp</th><th>Status</th><th class="num">Bereik</th><th>Datum</th><th><span class="sr">Acties</span></th></tr></thead>
+            <tbody id="camp-rows"></tbody>
+          </table>
+        </div>
+        <p class="empty" id="camp-empty" hidden>Nog geen nieuwsbrieven.</p>
+      </section>
+    </section>
+
+    <!-- ================================================================ MEMBERS -->
+    <section id="view-members" role="tabpanel" aria-labelledby="tab-members" hidden>
+      <section class="card">
+        <div class="card__head"><h2>Leden</h2><span class="card__sub" id="m-count"></span></div>
+        <div class="toolbar">
+          <label class="sr" for="m-q">Zoek op e-mail</label>
+          <input type="search" id="m-q" placeholder="Zoek op e-mail" autocomplete="off">
+          <label class="sr" for="m-status">Status</label>
+          <select id="m-status">
+            <option value="">Alle</option>
+            <option value="active">Actief</option>
+            <option value="pending">Wacht op bevestiging</option>
+            <option value="unsubscribed">Afgemeld</option>
+          </select>
+          <a class="pill pill--ghost pill--small" href="/api/admin/subscribers.csv">Exporteer actieve leden (CSV)</a>
+        </div>
+        <div class="table-wrap">
+          <table class="stack-table m-table">
+            <thead><tr><th>E-mail</th><th>Status</th><th>Aangemeld</th><th><span class="sr">Acties</span></th></tr></thead>
+            <tbody id="m-rows"></tbody>
+          </table>
+        </div>
+        <p class="empty" id="m-empty" hidden>Geen leden gevonden.</p>
+        <button class="pill pill--ghost pill--small more" type="button" id="m-more" hidden>Meer laden</button>
+      </section>
+    </section>
+
+    <!-- ================================================================ WEBSITE -->
+    <section id="view-site" role="tabpanel" aria-labelledby="tab-site" hidden>
+      <div class="grid-2">
+        <section class="card">
+          <div class="card__head">
+            <div><h2>Hero</h2><p class="card__sub" id="h-sub"></p></div>
+            <a class="link-btn" href="/" target="_blank" rel="noopener">Bekijk de site</a>
+          </div>
+          <div class="hero-prev" id="h-prev"></div>
+          <div class="still-row" id="h-still" hidden>
+            <p>Stilstaand beeld: <strong id="h-still-t">0:00,0</strong>. Dit zien bezoekers als de film niet kan spelen of als ze minder beweging hebben ingesteld. Spoel de video naar het beeld dat je wilt.</p>
+            <button class="pill pill--ghost pill--small" type="button" id="h-still-set">Gebruik dit beeld</button>
+          </div>
+          <div class="progress" id="h-job" hidden>
+            <div class="progress__bar"><i id="h-bar"></i></div>
+            <p class="saved" id="h-job-t" role="status"></p>
+          </div>
+          <div class="actions site-actions">
+            <label class="pill" id="h-pick">Nieuwe video of foto kiezen
+              <input class="sr" type="file" id="h-file" accept="video/mp4,video/quicktime,video/webm,.mov,.mp4,.m4v,.webm,image/*">
+            </label>
+            <button class="link-btn" type="button" id="h-reset" hidden>Terug naar de originele film</button>
+          </div>
+          <p class="syntax site-hint" id="h-hint"></p>
+          <p class="saved" id="h-status" role="status"></p>
+        </section>
+
+        <section class="card">
+          <div class="card__head">
+            <div><h2>Foto's onderaan de pagina</h2><p class="card__sub" id="g-sub"></p></div>
+            <label class="pill pill--small" id="g-pick">Foto's toevoegen
+              <input class="sr" type="file" id="g-file" accept="image/*" multiple>
+            </label>
+          </div>
+          <p class="saved g-status" id="g-status" role="status"></p>
+          <ol class="photos" id="g-list"></ol>
+          <p class="empty" id="g-empty" hidden>Nog geen foto's. Zonder foto's staat dit blok niet op de site.</p>
+        </section>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ======================================================================
+     DIALOGS
+     ====================================================================== -->
+<dialog id="dlg-send" aria-labelledby="dlg-send-h">
+  <form method="dialog">
+    <h2 id="dlg-send-h">Versturen naar <span id="dlg-n">0</span> leden?</h2>
+    <p>Dit kan niet worden teruggedraaid. Typ het aantal leden om te bevestigen.</p>
+    <label class="field"><span>Aantal leden</span><input id="dlg-typed" inputmode="numeric" autocomplete="off"></label>
+    <div class="actions">
+      <button class="pill pill--ghost" value="cancel" type="submit">Annuleren</button>
+      <button class="pill" value="send" type="submit" id="dlg-go" disabled>Versturen</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-confirm" aria-labelledby="dlg-confirm-h">
+  <form method="dialog">
+    <h2 id="dlg-confirm-h"></h2>
+    <p id="dlg-confirm-p"></p>
+    <div class="actions">
+      <button class="pill pill--ghost" value="cancel" type="submit">Annuleren</button>
+      <button class="pill" value="ok" type="submit" id="dlg-confirm-ok">Verwijderen</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<!-- the bell's popup: the latest messages, each with a way to answer in Gmail -->
+<div class="pop" id="pop" role="dialog" aria-labelledby="pop-h" hidden>
+  <div class="pop__head">
+    <h2 id="pop-h">Meldingen</h2>
+    <button class="link-btn" type="button" id="pop-all">Alle berichten</button>
+  </div>
+  <ul class="pop__list" id="pop-list"></ul>
+  <p class="empty" id="pop-empty" hidden>Nog geen berichten.</p>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ------------------------------------------------------------------ helpers */
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  /* DOM builder: everything from the server (emails, subjects) goes in as text, never as HTML */
+  const h = (tag, attrs = {}, ...kids) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === 'class') el.className = v;
+      else if (k === 'text') el.textContent = v;
+      else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v === true ? '' : v);
+    }
+    for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid);
+    return el;
+  };
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag, attrs = {}) => {
+    const el = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    return el;
+  };
+  const icon = (d) => {
+    const s = sv('svg', { viewBox: '0 0 16 16', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.8', 'aria-hidden': 'true' });
+    s.append(sv('path', { d, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+    return s;
+  };
+  const ICON = {
+    check: 'M3 8.5 6.5 12 13 4.5',
+    cross: 'M4 4l8 8M12 4l-8 8',
+    clock: 'M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM8 5v3.2l2 1.3',
+    draft: 'M3 13h10M4 10l6.5-6.5 2 2L6 12H4z',
+    up: 'M8 13V3M4 7l4-4 4 4',
+    down: 'M8 3v10M4 9l4 4 4-4',
+    left: 'M10 3.5 5.5 8l4.5 4.5',
+    right: 'M6 3.5 10.5 8 6 12.5',
+    share: 'M8 2.5V10M5.5 5 8 2.5 10.5 5M5.2 7.5H4.2A1.2 1.2 0 0 0 3 8.7v4.6a1.2 1.2 0 0 0 1.2 1.2h7.6a1.2 1.2 0 0 0 1.2-1.2V8.7a1.2 1.2 0 0 0-1.2-1.2h-1',
+    plus: 'M4.2 2.5h7.6a1.7 1.7 0 0 1 1.7 1.7v7.6a1.7 1.7 0 0 1-1.7 1.7H4.2a1.7 1.7 0 0 1-1.7-1.7V4.2a1.7 1.7 0 0 1 1.7-1.7ZM8 5.5v5M5.5 8h5',
+    dots: 'M8 3.2h.01M8 8h.01M8 12.8h.01',
+    phone: 'M5 1.8h6a1.2 1.2 0 0 1 1.2 1.2v10a1.2 1.2 0 0 1-1.2 1.2H5A1.2 1.2 0 0 1 3.8 13V3A1.2 1.2 0 0 1 5 1.8ZM8 5v4.5M6.3 7.8 8 9.5l1.7-1.7',
+    bell: 'M4 7a4 4 0 1 1 8 0c0 3.6 1.6 5 1.6 5H2.4S4 10.6 4 7M6.7 13.8a1.4 1.4 0 0 0 2.6 0',
+    download: 'M8 2.5V10M5 7l3 3 3-3M3 13h10',
+    mail: 'M3.2 3.3h9.6a1.4 1.4 0 0 1 1.4 1.4v6.6a1.4 1.4 0 0 1-1.4 1.4H3.2a1.4 1.4 0 0 1-1.4-1.4V4.7a1.4 1.4 0 0 1 1.4-1.4ZM2.3 4.3 8 8.6l5.7-4.3',
+  };
+
+  const NUM = new Intl.NumberFormat('nl-NL');
+  const fmt = (n) => NUM.format(n || 0);
+  const DAY = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short' });
+  const DAY_LONG = new Intl.DateTimeFormat('nl-NL', { weekday: 'short', day: 'numeric', month: 'long' });
+  const WHEN = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const keyDate = (k) => new Date(`${k}T12:00:00`);
+  const when = (iso) => (iso ? WHEN.format(new Date(iso)) : '');
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } },
+  };
+
+  let toastTimer = 0;
+  const toast = (msg) => {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
+  };
+
+  async function api(path, { method = 'GET', body } = {}) {
+    const headers = { Accept: 'application/json' };
+    if (method !== 'GET') headers['X-Sloca-Admin'] = '1';
+    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    const res = await fetch(`/api/admin/${path}`, {
+      method, headers, credentials: 'same-origin',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401 && path !== 'login') {
+      showLogin();
+      throw Object.assign(new Error('Niet ingelogd'), { status: 401 });
+    }
+    if (!res.ok) throw Object.assign(new Error(data.error || `Fout ${res.status}`), { status: res.status });
+    return data;
+  }
+
+  /* ------------------------------------------------------------------ auth */
+  const showLogin = () => {
+    $('#app').hidden = true;
+    $('#login').hidden = false;
+    setTimeout(() => $('#l-email').focus(), 0);
+  };
+  const showApp = () => {
+    $('#login').hidden = true;
+    $('#app').hidden = false;
+  };
+
+  $('#login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = $('#l-error');
+    err.textContent = '';
+    const email = $('#l-email').value.trim();
+    const password = $('#l-pass').value;
+    if (!email || !password) { err.textContent = 'Vul je e-mail en wachtwoord in.'; return; }
+    const btn = $('button[type=submit]', e.target);
+    btn.disabled = true;
+    try {
+      await api('login', { method: 'POST', body: { email, password } });
+      $('#l-pass').value = '';
+      await boot();
+    } catch (ex) {
+      err.textContent =
+        ex.status === 401 ? 'E-mail of wachtwoord klopt niet.' :
+        ex.status === 429 ? 'Te veel pogingen. Wacht een kwartier en probeer het opnieuw.' :
+        ex.status === 503 ? 'Er is nog geen wachtwoord ingesteld. Draai in de map slocabaia: npm run set-password' :
+        'Inloggen lukt nu niet. Probeer het zo opnieuw.';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $('#logout').addEventListener('click', async () => {
+    await disablePush().catch(() => {}); /* a signed-out phone stops getting notifications */
+    try { await api('logout', { method: 'POST' }); } catch { /* signed out anyway */ }
+    ME = null;
+    showLogin();
+  });
+
+  /* ------------------------------------------------------------------ tabs */
+  const VIEWS = ['overview', 'messages', 'news', 'members', 'site'];
+  const loaded = new Set();
+  function selectView(name) {
+    if (!VIEWS.includes(name)) name = 'overview';
+    for (const v of VIEWS) {
+      $(`#view-${v}`).hidden = v !== name;
+      $(`#tab-${v}`).setAttribute('aria-selected', String(v === name));
+      $(`#tab-${v}`).tabIndex = v === name ? 0 : -1;
+    }
+    if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
+    if (name === 'overview') loadStats();
+    if (name === 'news' && !loaded.has('news')) { loaded.add('news'); loadCampaigns(); ensureStats(); refreshPreview(); }
+    if (name === 'members' && !loaded.has('members')) { loaded.add('members'); loadMembers(true); }
+    if (name === 'site' && !loaded.has('site')) { loaded.add('site'); loadSite(); }
+    if (name === 'messages') { loadMessages(); paintPushCard(); }
+    if (name === 'overview') requestAnimationFrame(drawCharts);
+  }
+  $$('.tab').forEach((t) => t.addEventListener('click', () => selectView(t.dataset.view)));
+  $('.tabs').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const i = VIEWS.findIndex((v) => $(`#tab-${v}`).getAttribute('aria-selected') === 'true');
+    const next = VIEWS[(i + (e.key === 'ArrowRight' ? 1 : VIEWS.length - 1)) % VIEWS.length];
+    selectView(next);
+    $(`#tab-${next}`).focus();
+  });
+
+  /* ------------------------------------------------------------------ overview */
+  let range = [7, 30, 90].includes(store.get('sloca_range', 30)) ? store.get('sloca_range', 30) : 30;
+  let stats = null;
+  const tableView = { c1: false, c2: false };
+
+  $$('#range button').forEach((b) => b.addEventListener('click', () => {
+    range = Number(b.dataset.days);
+    store.set('sloca_range', range);
+    loadStats();
+  }));
+  const markRange = () => $$('#range button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.days) === range)));
+
+  async function loadStats() {
+    markRange();
+    const ov = $('#view-overview');
+    ov.classList.add('is-loading'); /* refetch keeps the frame: the old render stays, dimmed */
+    try {
+      stats = await api(`stats?days=${range}`);
+      renderFigures();
+      drawCharts();
+    } catch (ex) {
+      if (ex.status !== 401) toast('De cijfers konden niet worden geladen.');
+    } finally {
+      ov.classList.remove('is-loading');
+    }
+  }
+  async function ensureStats() {
+    if (!stats) await loadStats();
+    updateSendLabel();
+  }
+
+  const sum = (a) => a.reduce((x, y) => x + y, 0);
+  function renderFigures() {
+    const st = stats;
+    $('#f-active').textContent = fmt(st.members.active);
+    $('#f-pending').textContent = fmt(st.members.pending);
+    $('#f-unsub').textContent = fmt(st.members.unsubscribed);
+    $('#f-views').textContent = fmt(sum(st.pageviews));
+    $('#f-views-note').textContent = `Laatste ${range} dagen, ${fmt(st.pageviewsAllTime)} sinds de start`;
+    $('#f-sent').textContent = fmt(st.campaigns.sent);
+    $('#f-sent-note').textContent = st.campaigns.last ? `Laatste op ${when(st.campaigns.last)}` : 'Nog geen verstuurd';
+    const d = $('#f-delta');
+    d.textContent = '';
+    const joined = sum(st.joined);
+    const left = sum(st.left);
+    d.append(
+      h('span', { class: joined ? 'up' : '' }, icon(ICON.up), `${fmt(joined)} nieuw`),
+      h('span', {}, icon(ICON.down), `${fmt(left)} afgemeld`),
+      h('span', { text: `in de laatste ${range} dagen` }),
+    );
+    $('#c1-sub').textContent = `${fmt(sum(st.pageviews))} in de laatste ${range} dagen`;
+    const lg = $('#c2-legend');
+    lg.textContent = '';
+    lg.append(
+      h('li', {}, h('i', { style: 'background:var(--series-1)' }), `Nieuw (${fmt(joined)})`),
+      h('li', {}, h('i', { style: 'background:var(--series-2)' }), `Afgemeld (${fmt(left)})`),
+    );
+    updateSendLabel();
+  }
+
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  function drawCharts() {
+    if (!stats || $('#view-overview').hidden) return;
+    const keys = stats.days;
+    renderChart('c1', {
+      keys,
+      label: 'Paginaweergaven per dag',
+      empty: 'Nog geen paginaweergaven in deze periode.',
+      peak: true,
+      series: [{ label: 'Paginaweergaven', values: stats.pageviews, color: css('--series-1'), sign: 1 }],
+    });
+    renderChart('c2', {
+      keys,
+      label: 'Nieuwe en vertrokken leden per dag',
+      empty: 'Nog geen aanmeldingen of afmeldingen in deze periode.',
+      series: [
+        { label: 'Nieuw', values: stats.joined, color: css('--series-1'), sign: 1 },
+        { label: 'Afgemeld', values: stats.left, color: css('--series-2'), sign: -1 },
+      ],
+    });
+  }
+
+  $$('[data-toggle]').forEach((b) => b.addEventListener('click', () => {
+    const id = b.dataset.toggle;
+    tableView[id] = !tableView[id];
+    b.textContent = tableView[id] ? 'Toon als grafiek' : 'Toon als tabel';
+    drawCharts();
+  }));
+
+  function niceStep(max, ticks) {
+    if (max <= 0) return 1;
+    const raw = max / ticks;
+    const pow = 10 ** Math.floor(Math.log10(raw));
+    const f = raw / pow;
+    return Math.max(1, (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * pow);
+  }
+
+  function renderChart(id, cfg) {
+    const host = $(`#${id}`);
+    host.textContent = '';
+    if (tableView[id]) { host.append(dataTable(cfg)); return; }
+    if (!cfg.series.some((s) => s.values.some((v) => v > 0))) {
+      host.append(h('p', { class: 'empty', text: cfg.empty }));
+      return;
+    }
+    columns(host, cfg);
+  }
+
+  /* the accessible twin of every chart */
+  function dataTable(cfg) {
+    const t = h('table', { class: 'data' });
+    t.append(h('thead', {}, h('tr', {}, h('th', { text: 'Datum' }), cfg.series.map((s) => h('th', { class: 'num', text: s.label })))));
+    const tb = h('tbody');
+    cfg.keys.forEach((k, i) => {
+      tb.append(h('tr', {}, h('td', { text: DAY_LONG.format(keyDate(k)) }), cfg.series.map((s) => h('td', { class: 'num', text: fmt(s.values[i]) }))));
+    });
+    t.append(tb);
+    return h('div', { class: 'table-wrap' }, t);
+  }
+
+  /* Column chart. Thin bars (max 24px) with a 4px rounded data-end and a square
+     baseline end; series with sign -1 grow downward from the same baseline. The
+     band under the pointer is the hit target; arrow keys move along the days. */
+  function columns(host, cfg) {
+    const W = Math.max(260, Math.floor(host.clientWidth));
+    const padL = 36;
+    const padR = 6;
+    const padT = 18;
+    const axisH = 24;
+    const plotH = 172;
+    const H = padT + plotH + axisH;
+    const up = Math.max(0, ...cfg.series.filter((s) => s.sign > 0).flatMap((s) => s.values));
+    const down = Math.max(0, ...cfg.series.filter((s) => s.sign < 0).flatMap((s) => s.values));
+    const step = niceStep(Math.max(up, down), down ? 2 : 4);
+    const top = Math.max(step, Math.ceil(up / step) * step);
+    const bottom = down ? Math.ceil(down / step) * step : 0;
+    const plotW = W - padL - padR;
+    const Y = (v) => padT + ((top - v) / (top + bottom)) * plotH;
+    const y0 = Y(0);
+    const n = cfg.keys.length;
+    const band = plotW / n;
+    const bw = Math.max(1.5, Math.min(24, band * 0.62));
+    const r = Math.min(4, bw / 2);
+
+    const svg = sv('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, class: 'chart__svg', role: 'img', tabindex: '0', 'aria-label': `${cfg.label}. Gebruik de pijltjestoetsen om per dag te lezen.` });
+
+    for (let v = -bottom; v <= top + 1e-9; v += step) {
+      const yy = Math.round(Y(v)) + 0.5;
+      svg.append(sv('line', { x1: padL, x2: W - padR, y1: yy, y2: yy, class: v === 0 ? 'axis' : 'grid' }));
+      const t = sv('text', { x: padL - 8, y: yy + 4, class: 'tick', 'text-anchor': 'end' });
+      t.textContent = fmt(Math.abs(v));
+      svg.append(t);
+    }
+
+    const hi = sv('rect', { x: 0, y: padT, width: band, height: plotH, class: 'band', visibility: 'hidden' });
+    svg.append(hi);
+
+    const bars = [];
+    cfg.keys.forEach((k, i) => {
+      const x = padL + band * i + (band - bw) / 2;
+      const x2 = x + bw;
+      cfg.series.forEach((s) => {
+        const v = s.values[i];
+        if (!v) return;
+        let d;
+        if (s.sign > 0) {
+          /* 1px off the baseline on each side: a 2px surface gap between up and down */
+          const base = y0 - (bottom ? 1 : 0);
+          const yt = Math.min(Y(v), base - 1);
+          const rr = Math.min(r, base - yt);
+          d = `M${x},${base}V${yt + rr}Q${x},${yt} ${x + rr},${yt}H${x2 - rr}Q${x2},${yt} ${x2},${yt + rr}V${base}Z`;
+        } else {
+          const base = y0 + 1;
+          const yb = Math.max(Y(-v), base + 1);
+          const rr = Math.min(r, yb - base);
+          d = `M${x},${base}V${yb - rr}Q${x},${yb} ${x + rr},${yb}H${x2 - rr}Q${x2},${yb} ${x2},${yb - rr}V${base}Z`;
+        }
+        const p = sv('path', { d, fill: s.color, class: 'bar' });
+        p.dataset.i = String(i);
+        svg.append(p);
+        bars.push(p);
+      });
+    });
+
+    /* one direct label: the peak of the first series */
+    if (cfg.peak) {
+      const vals = cfg.series[0].values;
+      let bi = 0;
+      vals.forEach((v, i) => { if (v > vals[bi]) bi = i; });
+      const cx = Math.max(padL + 10, Math.min(W - padR - 10, padL + band * bi + band / 2));
+      const t = sv('text', { x: cx, y: Y(vals[bi]) - 6, class: 'peak', 'text-anchor': 'middle' });
+      t.textContent = fmt(vals[bi]);
+      svg.append(t);
+    }
+
+    const maxLabels = Math.max(2, Math.floor(plotW / 62));
+    const every = Math.ceil(n / maxLabels);
+    for (let i = 0; i < n; i += every) {
+      const cx = padL + band * i + band / 2;
+      const t = sv('text', { x: cx, y: H - 6, class: 'tick', 'text-anchor': i === 0 ? 'start' : 'middle' });
+      if (i === 0) t.setAttribute('x', padL);
+      t.textContent = DAY.format(keyDate(cfg.keys[i]));
+      svg.append(t);
+    }
+
+    host.append(svg);
+    const tip = h('div', { class: 'tip', hidden: true });
+    host.append(tip);
+
+    let active = -1;
+    const show = (i) => {
+      if (i < 0 || i >= n) return;
+      active = i;
+      hi.setAttribute('x', padL + band * i);
+      hi.setAttribute('visibility', 'visible');
+      bars.forEach((b) => b.classList.toggle('is-active', Number(b.dataset.i) === i));
+      tip.textContent = '';
+      tip.append(h('div', { class: 'tip__date', text: DAY_LONG.format(keyDate(cfg.keys[i])) }));
+      cfg.series.forEach((s) => tip.append(h('div', { class: 'tip__row' },
+        h('span', { class: 'tip__key', style: `background:${s.color}` }),
+        h('strong', { text: fmt(s.values[i]) }),
+        h('span', { text: s.label }))));
+      tip.hidden = false;
+      const tw = tip.offsetWidth;
+      const left = Math.max(0, Math.min(W - tw, padL + band * i + band / 2 - tw / 2));
+      tip.style.left = `${left}px`;
+    };
+    const hide = () => {
+      tip.hidden = true;
+      hi.setAttribute('visibility', 'hidden');
+      bars.forEach((b) => b.classList.remove('is-active'));
+    };
+    const at = (e) => {
+      const rect = svg.getBoundingClientRect();
+      return Math.max(0, Math.min(n - 1, Math.floor((e.clientX - rect.left - padL) / band)));
+    };
+    svg.addEventListener('pointermove', (e) => show(at(e)));
+    svg.addEventListener('pointerdown', (e) => show(at(e)));
+    svg.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'touch') hide(); });
+    svg.addEventListener('focus', () => show(active >= 0 ? active : n - 1));
+    svg.addEventListener('blur', hide);
+    svg.addEventListener('keydown', (e) => {
+      const go = { ArrowRight: active + 1, ArrowLeft: active - 1, Home: 0, End: n - 1 }[e.key];
+      if (go !== undefined) { e.preventDefault(); show(Math.max(0, Math.min(n - 1, go))); }
+      else if (e.key === 'Escape') hide();
+    });
+  }
+
+  /* redraw on width changes, once per frame */
+  let raf = 0;
+  new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(drawCharts); }).observe($('.charts'));
+
+  /* ------------------------------------------------------------------ newsletter */
+  let draftId = null;
+  let sending = null;
+
+  const composer = () => ({
+    subject: $('#c-subject').value.trim(),
+    preheader: $('#c-pre').value.trim(),
+    body: $('#c-body').value,
+  });
+  const say = (msg) => { $('#c-status').textContent = msg; };
+
+  let pvTimer = 0;
+  function refreshPreview() {
+    clearTimeout(pvTimer);
+    pvTimer = setTimeout(async () => {
+      const c = composer();
+      try {
+        const { html } = await api('preview', { method: 'POST', body: { ...c, subject: c.subject || 'Onderwerp' } });
+        $('#c-preview').srcdoc = html;
+      } catch { /* the preview is a convenience; the next keystroke tries again */ }
+    }, 350);
+  }
+  ['#c-subject', '#c-pre', '#c-body'].forEach((s) => $(s).addEventListener('input', () => { refreshPreview(); say(''); }));
+
+  function updateSendLabel() {
+    const n = stats ? stats.members.active : 0;
+    $('#c-send').textContent = n ? `Versturen naar ${fmt(n)} ${n === 1 ? 'lid' : 'leden'}` : 'Versturen';
+    $('#c-send').disabled = !n || Boolean(sending);
+  }
+
+  function setDraft(c) {
+    draftId = c ? c.id : null;
+    $('#c-subject').value = c ? c.subject : '';
+    $('#c-pre').value = c ? c.preheader : '';
+    $('#c-body').value = c ? c.body : '';
+    $('#composer-title').textContent = c ? 'Concept bewerken' : 'Nieuwe nieuwsbrief';
+    $('#c-new').hidden = !c;
+    say('');
+    refreshPreview();
+  }
+  $('#c-new').addEventListener('click', () => setDraft(null));
+
+  async function saveDraft(quiet) {
+    const c = composer();
+    if (!c.subject) { $('#c-subject').focus(); say('Geef de nieuwsbrief een onderwerp.'); return null; }
+    const saved = draftId
+      ? await api(`campaigns/${draftId}`, { method: 'PUT', body: c })
+      : await api('campaigns', { method: 'POST', body: c });
+    draftId = saved.id;
+    $('#composer-title').textContent = 'Concept bewerken';
+    $('#c-new').hidden = false;
+    if (!quiet) say(`Concept opgeslagen om ${new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}.`);
+    loadCampaigns();
+    return saved;
+  }
+
+  const guarded = (btn, fn) => async () => {
+    btn.disabled = true;
+    try { await fn(); } catch (ex) { if (ex.status !== 401) say(`Dat lukte niet: ${ex.message}`); } finally { btn.disabled = false; updateSendLabel(); }
+  };
+  $('#c-save').addEventListener('click', guarded($('#c-save'), () => saveDraft(false)));
+  $('#c-test').addEventListener('click', guarded($('#c-test'), async () => {
+    const saved = await saveDraft(true);
+    if (!saved) return;
+    const r = await api(`campaigns/${saved.id}/test`, { method: 'POST' });
+    say(r.mode === 'log'
+      ? `Testmodus: de testmail naar ${r.to} staat in data/outbox (er is niets verstuurd).`
+      : `Testmail verstuurd naar ${r.to}.`);
+  }));
+
+  $('#c-send').addEventListener('click', guarded($('#c-send'), async () => {
+    const saved = await saveDraft(true);
+    if (!saved) return;
+    await loadStats();
+    const n = stats.members.active;
+    if (!n) { say('Er zijn nog geen actieve leden.'); return; }
+    const dlg = $('#dlg-send');
+    $('#dlg-n').textContent = fmt(n);
+    $('#dlg-typed').value = '';
+    $('#dlg-go').disabled = true;
+    dlg.showModal();
+    const choice = await new Promise((done) => dlg.addEventListener('close', () => done(dlg.returnValue), { once: true }));
+    if (choice !== 'send') return;
+    const r = await api(`campaigns/${saved.id}/send`, { method: 'POST', body: { confirm: n } });
+    sending = saved.id;
+    say(r.mode === 'log' ? `Testmodus: de mails worden in data/outbox gezet (${fmt(r.recipients)}).` : `Bezig met versturen naar ${fmt(r.recipients)} leden...`);
+    setDraft(null);
+    pollSend();
+  }));
+  $('#dlg-typed').addEventListener('input', (e) => {
+    const n = stats ? stats.members.active : -1;
+    $('#dlg-go').disabled = Number(e.target.value.replace(/\D/g, '')) !== n;
+  });
+
+  async function pollSend() {
+    if (!sending) return;
+    try {
+      const c = await api(`campaigns/${sending}`);
+      if (c.status === 'sending') {
+        say(`Bezig met versturen: ${fmt(c.sent)} van ${fmt(c.recipients)}.`);
+        loadCampaigns();
+        setTimeout(pollSend, 1500);
+        return;
+      }
+      say(c.status === 'sent'
+        ? `Klaar: verstuurd naar ${fmt(c.sent)} leden${c.failed ? `, ${fmt(c.failed)} mislukt` : ''}.`
+        : `Versturen is mislukt (${fmt(c.failed)} niet afgeleverd). Kijk of de Resend-sleutel klopt.`);
+      sending = null;
+      loadCampaigns();
+      loadStats();
+    } catch { setTimeout(pollSend, 3000); }
+  }
+
+  const STATUS = {
+    draft: ['Concept', 'status--muted', ICON.draft],
+    sending: ['Bezig', 'status--warning', ICON.clock],
+    sent: ['Verstuurd', 'status--good', ICON.check],
+    failed: ['Mislukt', 'status--critical', ICON.cross],
+    active: ['Actief', 'status--good', ICON.check],
+    pending: ['Wacht op bevestiging', 'status--warning', ICON.clock],
+    unsubscribed: ['Afgemeld', 'status--muted', ICON.cross],
+  };
+  const statusCell = (key) => {
+    const [label, cls, d] = STATUS[key] || [key, 'status--muted', ICON.draft];
+    return h('span', { class: `status ${cls}` }, icon(d), label);
+  };
+
+  async function confirmDialog(title, text, okLabel) {
+    const dlg = $('#dlg-confirm');
+    $('#dlg-confirm-h').textContent = title;
+    $('#dlg-confirm-p').textContent = text;
+    $('#dlg-confirm-ok').textContent = okLabel;
+    dlg.showModal();
+    return new Promise((done) => dlg.addEventListener('close', () => done(dlg.returnValue === 'ok'), { once: true }));
+  }
+
+  async function loadCampaigns() {
+    try {
+      const { rows } = await api('campaigns');
+      const tb = $('#camp-rows');
+      tb.textContent = '';
+      $('#camp-empty').hidden = rows.length > 0;
+      for (const c of rows) {
+        const actions = h('div', { class: 'row-actions' });
+        if (c.status === 'draft') {
+          actions.append(
+            h('button', { class: 'link-btn', type: 'button', text: 'Bewerken', onclick: async () => { setDraft(await api(`campaigns/${c.id}`)); $('#c-subject').focus(); } }),
+            h('button', { class: 'link-btn link-btn--danger', type: 'button', text: 'Verwijderen', onclick: async () => {
+              if (!(await confirmDialog('Concept verwijderen?', `"${c.subject}" wordt verwijderd.`, 'Verwijderen'))) return;
+              await api(`campaigns/${c.id}`, { method: 'DELETE' });
+              if (draftId === c.id) setDraft(null);
+              loadCampaigns();
+            } }),
+          );
+        }
+        const reach = c.status === 'draft' ? '' : `${fmt(c.sent)} van ${fmt(c.recipients)}${c.failed ? ` (${fmt(c.failed)} mislukt)` : ''}`;
+        tb.append(h('tr', {},
+          h('td', { text: c.subject }),
+          h('td', {}, statusCell(c.status)),
+          h('td', { class: 'num', text: reach }),
+          h('td', { text: when(c.sent_at || c.updated_at) }),
+          h('td', {}, actions)));
+      }
+    } catch (ex) { if (ex.status !== 401) toast('De nieuwsbrieven konden niet worden geladen.'); }
+  }
+
+  /* ------------------------------------------------------------------ members */
+  const PAGE = 50;
+  let mOffset = 0;
+  let mTimer = 0;
+  $('#m-q').addEventListener('input', () => { clearTimeout(mTimer); mTimer = setTimeout(() => loadMembers(true), 300); });
+  $('#m-status').addEventListener('change', () => loadMembers(true));
+  $('#m-more').addEventListener('click', () => loadMembers(false));
+
+  async function loadMembers(reset) {
+    if (reset) mOffset = 0;
+    const q = encodeURIComponent($('#m-q').value.trim());
+    const status = encodeURIComponent($('#m-status').value);
+    try {
+      const { total, rows } = await api(`subscribers?q=${q}&status=${status}&limit=${PAGE}&offset=${mOffset}`);
+      const tb = $('#m-rows');
+      if (reset) tb.textContent = '';
+      for (const m of rows) {
+        tb.append(h('tr', {},
+          h('td', { class: 'email', text: m.email }),
+          h('td', {}, statusCell(m.status)),
+          h('td', { text: when(m.confirmed_at || m.created_at) }),
+          h('td', {}, h('div', { class: 'row-actions' }, h('button', { class: 'link-btn link-btn--danger', type: 'button', text: 'Verwijderen', onclick: async () => {
+            if (!(await confirmDialog('Lid verwijderen?', `${m.email} wordt definitief uit de lijst gewist, inclusief de verzendgeschiedenis.`, 'Verwijderen'))) return;
+            await api(`subscribers/${m.id}`, { method: 'DELETE' });
+            toast('Verwijderd.');
+            loadMembers(true);
+            stats = null;
+          } })))));
+      }
+      mOffset += rows.length;
+      $('#m-empty').hidden = total > 0;
+      $('#m-more').hidden = mOffset >= total;
+      $('#m-count').textContent = `${fmt(total)} ${total === 1 ? 'resultaat' : 'resultaten'}`;
+    } catch (ex) { if (ex.status !== 401) toast('De leden konden niet worden geladen.'); }
+  }
+
+  /* ------------------------------------------------------------------ website: hero */
+  let site = null;
+  let jobTimer = 0;
+  let uploading = false;
+  let photoBatch = false;
+  const hStatus =(msg) => { $('#h-status').textContent = msg; };
+  const gStatus = (msg) => { $('#g-status').textContent = msg; };
+  const clock = (s) => {
+    const t = Math.max(0, Number(s) || 0);
+    const m = Math.floor(t / 60);
+    return `${m}:${(t - m * 60).toFixed(1).padStart(4, '0').replace('.', ',')}`;
+  };
+  addEventListener('beforeunload', (e) => { if (uploading) { e.preventDefault(); e.returnValue = ''; } });
+
+  async function loadSite() {
+    try {
+      site = await api('site');
+      renderSite();
+      const j = site.job;
+      if (j && (j.state === 'uploading' || j.state === 'processing')) watchJob();
+    } catch (ex) {
+      if (ex.status !== 401) toast('De website-instellingen konden niet worden geladen.');
+    }
+  }
+
+  /* one bar for both steps: uploading fills the first half, processing on the server the second */
+  function showJob(frac, text) {
+    const on = frac != null;
+    $('#h-job').hidden = !on;
+    if (on) {
+      $('#h-bar').style.width = `${Math.round(Math.max(0, Math.min(1, frac)) * 100)}%`;
+      $('#h-job-t').textContent = text;
+    }
+    $('#h-file').disabled = on;
+    $('#h-pick').classList.toggle('is-disabled', on);
+    $('#h-reset').disabled = on;
+  }
+
+  function renderSite() {
+    const hr = site.hero;
+    const box = $('#h-prev');
+    box.textContent = '';
+    if (hr.type === 'video') {
+      const v = h('video', { src: hr.v720, poster: hr.poster, controls: true, muted: true, playsinline: true, loop: true, preload: 'metadata', 'aria-label': 'Huidige hero-video' });
+      v.muted = true;
+      v.addEventListener('loadedmetadata', () => { try { v.currentTime = hr.still || 0; } catch { /* not seekable yet */ } }, { once: true });
+      box.append(v);
+    } else {
+      box.append(h('img', { src: hr.poster, alt: 'Huidige hero-foto' }));
+    }
+    $('#h-still').hidden = hr.type !== 'video';
+    $('#h-still-t').textContent = clock(hr.still);
+    $('#h-sub').textContent = !hr.custom ? 'De originele Slocabaia-film' : hr.type === 'video' ? `Eigen video van ${clock(hr.duration)}` : 'Eigen foto';
+    $('#h-reset').hidden = !hr.custom;
+    $('#h-hint').textContent = site.canVideo
+      ? `Een liggende video (16:9) werkt het best. Maximaal 1 GB; langer dan ${site.limits.seconds} seconden wordt afgekapt en het geluid gaat eraf. Een foto kan ook.`
+      : 'Deze server kan geen video verwerken (ffmpeg ontbreekt), een foto als hero kan wel.';
+    const j = site.job;
+    if (!uploading) showJob(j && (j.state === 'uploading' || j.state === 'processing') ? 0.5 + (j.progress / 200) : null, 'Verwerken...');
+    renderGallery();
+  }
+
+  $('#h-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    hStatus('');
+    const isVideo = file.type.startsWith('video/') || /\.(mp4|m4v|mov|webm)$/i.test(file.name);
+    const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|webp|heic|heif|avif)$/i.test(file.name);
+    if (isVideo) { uploadVideo(file); return; }
+    if (!isImage) { hStatus('Kies een video (MP4, MOV of WebM) of een foto.'); return; }
+    showJob(0.3, 'Foto klaarmaken...');
+    try {
+      const img = await toJpeg(file, 2400);
+      showJob(0.7, 'Foto uploaden...');
+      await api('hero/image', { method: 'POST', body: { image: img.data } });
+      showJob(null);
+      toast('De nieuwe hero staat op de site.');
+      await loadSite();
+    } catch (ex) {
+      showJob(null);
+      if (ex.status !== 401) hStatus(`Dat lukte niet: ${ex.message}`);
+    }
+  });
+
+  /* A video goes up as the raw file (XHR, so the bar can show upload progress); the server
+     turns it into the 1080p and 720p web versions and a poster frame. */
+  function uploadVideo(file) {
+    if (!site.canVideo) { hStatus('Deze server kan geen video verwerken. Kies een foto.'); return; }
+    if (file.size > site.limits.videoMB * 1024 * 1024) { hStatus('Deze video is groter dan 1 GB. Exporteer hem kleiner, bijvoorbeeld in 1080p.'); return; }
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/admin/hero/video');
+    xhr.setRequestHeader('X-Sloca-Admin', '1');
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.upload.addEventListener('progress', (ev) => {
+      if (!ev.lengthComputable) return;
+      const f = ev.loaded / ev.total;
+      showJob(f * 0.5, `Uploaden: ${Math.round(f * 100)}%. Laat deze pagina open tot het uploaden klaar is.`);
+    });
+    xhr.addEventListener('load', () => {
+      uploading = false;
+      let data = {};
+      try { data = JSON.parse(xhr.responseText); } catch { /* not JSON */ }
+      if (xhr.status === 202) { showJob(0.5, 'Verwerken...'); watchJob(); }
+      else if (xhr.status === 401) { showJob(null); showLogin(); }
+      else { showJob(null); hStatus(`Uploaden lukte niet: ${data.error || `fout ${xhr.status}`}`); }
+    });
+    xhr.addEventListener('error', () => {
+      uploading = false;
+      showJob(null);
+      hStatus('Het uploaden is afgebroken. Controleer je verbinding en probeer het opnieuw.');
+    });
+    uploading = true;
+    showJob(0, 'Uploaden: 0%');
+    xhr.send(file);
+  }
+
+  async function watchJob() {
+    clearTimeout(jobTimer);
+    let s;
+    try { s = await api('site'); } catch (ex) { if (ex.status !== 401) jobTimer = setTimeout(watchJob, 3000); return; }
+    site = s;
+    const j = s.job;
+    if (j && (j.state === 'uploading' || j.state === 'processing')) {
+      showJob(0.5 + j.progress / 200, `Verwerken: ${j.progress}%. Dit duurt meestal een paar minuten; je mag deze pagina sluiten.`);
+      jobTimer = setTimeout(watchJob, 1500);
+      return;
+    }
+    showJob(null);
+    renderSite();
+    if (j && j.state === 'failed') hStatus(`Verwerken lukte niet: ${j.error}`);
+    else if (j && j.state === 'done') { toast('De nieuwe video staat op de site.'); hStatus('Kies hierboven eventueel een ander stilstaand beeld.'); }
+  }
+
+  $('#h-still-set').addEventListener('click', async () => {
+    const v = $('#h-prev video');
+    if (!v) return;
+    const t = Math.round(v.currentTime * 100) / 100;
+    try {
+      const r = await api('hero', { method: 'PUT', body: { still: t } });
+      site.hero = r.hero;
+      $('#h-still-t').textContent = clock(t);
+      toast('Stilstaand beeld opgeslagen.');
+    } catch (ex) { if (ex.status !== 401) hStatus(`Dat lukte niet: ${ex.message}`); }
+  });
+
+  $('#h-reset').addEventListener('click', async () => {
+    if (!(await confirmDialog('Terug naar de originele film?', 'De huidige hero wordt verwijderd en de originele Slocabaia-film komt terug op de site.', 'Terugzetten'))) return;
+    try {
+      await api('hero', { method: 'DELETE' });
+      hStatus('');
+      toast('De originele film staat weer op de site.');
+      await loadSite();
+    } catch (ex) { if (ex.status !== 401) hStatus(`Dat lukte niet: ${ex.message}`); }
+  });
+
+  /* ------------------------------------------------------------------ website: photos */
+  const iconBtn = (d, label, onclick, disabled, dir) =>
+    h('button', { class: 'icon-btn', type: 'button', 'aria-label': label, title: label, disabled, 'data-move': dir, onclick }, icon(d));
+
+  function renderGallery() {
+    const list = $('#g-list');
+    const items = site.gallery;
+    /* a description being typed survives the rebuild (an upload can finish meanwhile) */
+    const act = document.activeElement;
+    const keep = act && act.dataset && act.dataset.altFor
+      ? { id: act.dataset.altFor, value: act.value, a: act.selectionStart, b: act.selectionEnd }
+      : null;
+    list.textContent = '';
+    $('#g-empty').hidden = items.length > 0;
+    $('#g-sub').textContent = `${items.length} van ${site.limits.photos}, in deze volgorde op de site`;
+    const full = items.length >= site.limits.photos;
+    $('#g-file').disabled = full || photoBatch;
+    $('#g-pick').classList.toggle('is-disabled', full || photoBatch);
+
+    items.forEach((p, i) => {
+      const alt = h('input', { type: 'text', maxlength: '200', value: p.alt, placeholder: 'Bijv. model in de bruine hoodie', 'data-alt-for': p.id });
+      alt.addEventListener('change', async () => {
+        try {
+          const r = await api(`gallery/${encodeURIComponent(p.id)}`, { method: 'PUT', body: { alt: alt.value } });
+          site.gallery = r.gallery;
+          gStatus('Beschrijving opgeslagen.');
+        } catch (ex) { if (ex.status !== 401) gStatus(`Dat lukte niet: ${ex.message}`); }
+      });
+      const move = (d) => async () => {
+        const ids = items.map((x) => x.id);
+        const j = i + d;
+        [ids[i], ids[j]] = [ids[j], ids[i]];
+        try {
+          const r = await api('gallery/order', { method: 'POST', body: { ids } });
+          site.gallery = r.gallery;
+          renderGallery();
+          /* keep keyboard focus on the photo that moved */
+          const tile = $$('#g-list .photo')[j];
+          const same = tile && tile.querySelector(`[data-move="${d < 0 ? 'left' : 'right'}"]`);
+          (same && !same.disabled ? same : tile && tile.querySelector('[data-move]:not(:disabled)'))?.focus();
+        } catch (ex) { if (ex.status !== 401) gStatus(`Dat lukte niet: ${ex.message}`); }
+      };
+      const del = async () => {
+        if (!(await confirmDialog('Foto verwijderen?', 'De foto verdwijnt van de site.', 'Verwijderen'))) return;
+        try {
+          const r = await api(`gallery/${encodeURIComponent(p.id)}`, { method: 'DELETE' });
+          site.gallery = r.gallery;
+          renderGallery();
+          gStatus('Foto verwijderd.');
+          /* focus goes to the photo that took its place, else the previous one, else the add button */
+          const tiles = $$('#g-list .photo');
+          const next = tiles[Math.min(i, tiles.length - 1)];
+          (next ? next.querySelector('.link-btn--danger') : $('#g-file')).focus();
+        } catch (ex) { if (ex.status !== 401) gStatus(`Dat lukte niet: ${ex.message}`); }
+      };
+      list.append(h('li', { class: 'photo' },
+        h('img', { src: p.thumb || p.src, alt: '', loading: 'lazy' }),
+        h('label', { class: 'field' }, h('span', { text: `Beschrijving foto ${i + 1}` }), alt),
+        h('div', { class: 'photo__bar' },
+          h('div', { class: 'photo__move' },
+            iconBtn(ICON.left, 'Eerder zetten', move(-1), i === 0, 'left'),
+            iconBtn(ICON.right, 'Later zetten', move(1), i === items.length - 1, 'right')),
+          h('button', { class: 'link-btn link-btn--danger', type: 'button', text: 'Verwijderen', onclick: del }))));
+    });
+    if (keep) {
+      const el = list.querySelector(`input[data-alt-for="${CSS.escape(keep.id)}"]`);
+      if (el) {
+        el.value = keep.value;
+        el.focus();
+        try { el.setSelectionRange(keep.a, keep.b); } catch { /* not a text field any more */ }
+      }
+    }
+  }
+
+  $('#g-file').addEventListener('change', async (e) => {
+    const files = [...e.target.files];
+    e.target.value = '';
+    if (!files.length) return;
+    const take = files.slice(0, Math.max(0, site.limits.photos - site.gallery.length));
+    /* the picker stays locked for the whole batch; one bad file does not stop the others */
+    photoBatch = true;
+    renderGallery();
+    let added = 0;
+    const failed = [];
+    for (const [k, file] of take.entries()) {
+      gStatus(`Foto ${k + 1} van ${take.length} klaarmaken en uploaden...`);
+      try {
+        const big = await toJpeg(file, 1800);
+        const small = big.w > 800 || big.h > 800 ? await toJpeg(file, 800) : null;
+        const r = await api('gallery', { method: 'POST', body: { image: big.data, thumb: small ? small.data : undefined, alt: '' } });
+        site.gallery = r.gallery;
+        added += 1;
+        renderGallery();
+      } catch (ex) {
+        if (ex.status === 401) { photoBatch = false; return; }
+        failed.push(`${file.name}: ${ex.message}`);
+      }
+    }
+    photoBatch = false;
+    renderGallery();
+    const skipped = files.length - take.length;
+    const parts = [];
+    if (added) parts.push(`${added === 1 ? 'Foto' : `${added} foto's`} toegevoegd. Vul een korte beschrijving in: die lezen blinde bezoekers voor.`);
+    if (skipped) parts.push(`${skipped} ${skipped === 1 ? 'foto paste' : "foto's pasten"} er niet meer bij.`);
+    if (failed.length) parts.push(`Niet gelukt: ${failed.join('; ')}`);
+    gStatus(parts.join(' '));
+  });
+
+  /* Photos are resized in the browser before they are sent: a 5 MB phone photo becomes a JPEG
+     of a few hundred KB, its location data is dropped, and the server only ever gets JPEGs. */
+  async function decodeImage(file) {
+    if ('createImageBitmap' in window) {
+      try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch { /* try an <img> below */ }
+    }
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      return img;
+    } catch {
+      throw new Error('Deze foto kan de browser niet openen. Kies een JPG of PNG.');
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+  }
+  async function toJpeg(file, max) {
+    const src = await decodeImage(file);
+    const sw = src.naturalWidth || src.width;
+    const sh = src.naturalHeight || src.height;
+    const s = Math.min(1, max / Math.max(sw, sh));
+    const w = Math.max(1, Math.round(sw * s));
+    const ht = Math.max(1, Math.round(sh * s));
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = ht;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#050505'; /* transparent PNG areas take the page colour, not black-on-nothing */
+    ctx.fillRect(0, 0, w, ht);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(src, 0, 0, w, ht);
+    if (typeof src.close === 'function') src.close();
+    const blob = await new Promise((ok, fail) => c.toBlob((b) => (b ? ok(b) : fail(new Error('Deze foto kon niet worden omgezet.'))), 'image/jpeg', 0.86));
+    const data = await new Promise((ok, fail) => {
+      const fr = new FileReader();
+      fr.onload = () => ok(fr.result);
+      fr.onerror = () => fail(new Error('Deze foto kon niet worden gelezen.'));
+      fr.readAsDataURL(blob);
+    });
+    return { data, w, h: ht };
+  }
+
+  /* ------------------------------------------------------------------ messages */
+  let ME = null;
+  let MSGS = [];
+  let openId = null;
+  let scrollToOpen = false;
+  let lastUnread = null;
+  const RTF = new Intl.RelativeTimeFormat('nl', { numeric: 'auto' });
+  const ago = (iso) => {
+    const s = (new Date(iso).getTime() - Date.now()) / 1000;
+    const a = Math.abs(s);
+    if (a < 60) return 'zojuist';
+    if (a < 3600) return RTF.format(Math.round(s / 60), 'minute');
+    if (a < 86400) return RTF.format(Math.round(s / 3600), 'hour');
+    return a < 7 * 86400 ? RTF.format(Math.round(s / 86400), 'day') : when(iso);
+  };
+  const oneLine = (t, n) => {
+    const s = String(t).replace(/\s+/g, ' ').trim();
+    return s.length > n ? `${s.slice(0, n - 1)}…` : s;
+  };
+
+  /* Gmail links open the Slocabaia account (authuser), also when more accounts are signed in */
+  const gmail = (extra) => `https://mail.google.com/mail/?authuser=${encodeURIComponent((ME && ME.email) || 'slocabaia@gmail.com')}${extra}`;
+  const gmailReply = (m) => {
+    const quote = m.body.length > 1500 ? `${m.body.slice(0, 1500)}…` : m.body;
+    const body = `\n\n\n${m.name} (${WHEN.format(new Date(m.created_at))}):\n${quote.split('\n').map((l) => `> ${l}`).join('\n')}`;
+    return gmail(`&view=cm&fs=1&to=${encodeURIComponent(m.email)}&su=${encodeURIComponent('Re: your message to Slocabaia')}&body=${encodeURIComponent(body)}`);
+  };
+  const gmailFind = (m) => gmail(`#search/${encodeURIComponent(m.email)}`);
+
+  function setBadge(n) {
+    n = Number(n) || 0;
+    const b = $('#bell-n');
+    b.hidden = !n;
+    b.textContent = n > 9 ? '9+' : String(n);
+    $('#bell').setAttribute('aria-label', n ? `Meldingen, ${n} ongelezen ${n === 1 ? 'bericht' : 'berichten'}` : 'Meldingen');
+    const t = $('#tab-n');
+    t.hidden = !n;
+    t.textContent = String(n);
+    if ('setAppBadge' in navigator) (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => {});
+    /* a message that came in while the dashboard was open */
+    if (lastUnread !== null && n > lastUnread) {
+      const newest = MSGS.find((m) => !m.read_at && !m.spam);
+      toast(newest ? `Nieuw bericht van ${newest.name}` : 'Nieuw bericht');
+    }
+    lastUnread = n;
+  }
+
+  async function loadMessages() {
+    try {
+      const d = await api('messages');
+      MSGS = d.rows;
+      setBadge(d.unread);
+      $('#msg-sub').textContent = d.total ? `${fmt(d.total)} ${d.total === 1 ? 'bericht' : 'berichten'}, ${fmt(d.unread)} ongelezen` : '';
+      $('#gmail-inbox').href = gmail('');
+      if (!$('#view-messages').hidden) renderMessages();
+      if (!$('#pop').hidden) renderPop();
+    } catch (ex) {
+      if (ex.status !== 401) toast('De berichten konden niet worden geladen.');
+    }
+  }
+
+  function renderMessages() {
+    const list = $('#msg-list');
+    list.textContent = '';
+    $('#msg-empty').hidden = MSGS.length > 0;
+    for (const m of MSGS) list.append(msgItem(m));
+    if (scrollToOpen && openId) {
+      scrollToOpen = false;
+      const m = MSGS.find((x) => x.id === openId);
+      if (m && !m.read_at) markRead(m, true);
+      const el = document.getElementById(`msg-${openId}`);
+      if (el) el.scrollIntoView({ block: 'start' });
+    }
+  }
+
+  function msgItem(m) {
+    const open = openId === m.id;
+    const li = h('li', { class: `msg${m.read_at ? '' : ' is-unread'}${open ? ' is-open' : ''}`, id: `msg-${m.id}` });
+    li.append(h('button', { class: 'msg__head', type: 'button', 'aria-expanded': String(open), onclick: () => toggleMessage(m) },
+      h('span', { class: 'msg__dot', 'aria-hidden': 'true' }),
+      h('span', { class: 'msg__who' }, h('strong', { text: m.name }), h('span', { text: m.email })),
+      h('span', { class: 'msg__when', text: ago(m.created_at) }),
+      h('span', { class: 'msg__snip', text: oneLine(m.body, 160) }),
+      m.spam ? h('span', { class: 'status status--warning' }, icon(ICON.clock), 'Mogelijk spam') : null,
+      m.read_at ? null : h('span', { class: 'sr', text: 'Ongelezen' })));
+    if (open) {
+      li.append(h('div', { class: 'msg__body' },
+        h('p', { class: 'msg__text', text: m.body }),
+        h('div', { class: 'actions' },
+          h('a', { class: 'pill', href: gmailReply(m), target: '_blank', rel: 'noopener' }, icon(ICON.mail), 'Beantwoorden in Gmail'),
+          h('a', { class: 'link-btn', href: gmailFind(m), target: '_blank', rel: 'noopener', text: 'Bekijk in Gmail' }),
+          h('button', { class: 'link-btn', type: 'button', text: m.read_at ? 'Markeer als ongelezen' : 'Markeer als gelezen', onclick: () => markRead(m, !m.read_at) }),
+          h('button', { class: 'link-btn link-btn--danger', type: 'button', text: 'Verwijderen', onclick: () => removeMessage(m) }))));
+    }
+    return li;
+  }
+
+  function toggleMessage(m) {
+    openId = openId === m.id ? null : m.id;
+    history.replaceState(null, '', openId ? `#messages/${m.id}` : '#messages');
+    if (openId && !m.read_at) markRead(m, true);
+    else renderMessages();
+    const head = document.querySelector(`#msg-${m.id} .msg__head`);
+    if (head) head.focus();
+  }
+
+  async function markRead(m, read) {
+    try {
+      const d = await api(`messages/${m.id}`, { method: 'PUT', body: { read } });
+      m.read_at = read ? new Date().toISOString() : null;
+      setBadge(d.unread);
+    } catch (ex) {
+      if (ex.status !== 401) toast('Dat lukte niet.');
+    }
+    renderMessages();
+    if (!$('#pop').hidden) renderPop();
+    const head = document.querySelector(`#msg-${m.id} .msg__head`);
+    if (head && document.activeElement === document.body) head.focus();
+  }
+
+  async function removeMessage(m) {
+    if (!(await confirmDialog('Bericht verwijderen?', `Het bericht van ${m.name} verdwijnt uit het dashboard.`, 'Verwijderen'))) return;
+    try {
+      const d = await api(`messages/${m.id}`, { method: 'DELETE' });
+      MSGS = MSGS.filter((x) => x.id !== m.id);
+      if (openId === m.id) openId = null;
+      setBadge(d.unread);
+      renderMessages();
+      toast('Bericht verwijderd.');
+    } catch (ex) {
+      if (ex.status !== 401) toast('Dat lukte niet.');
+    }
+  }
+
+  /* hash routes: #messages/12 opens message 12 (the notifications link there) */
+  function route(hash) {
+    const [view, id] = String(hash || '').replace(/^#/, '').split('/');
+    if (view === 'messages' && id) {
+      openId = Number(id) || null;
+      scrollToOpen = true;
+    }
+    selectView(view);
+  }
+  addEventListener('hashchange', () => route(location.hash));
+
+  /* ------------------------------------------------------------------ the bell */
+  const pop = $('#pop');
+  function renderPop() {
+    const list = $('#pop-list');
+    list.textContent = '';
+    const items = MSGS.filter((m) => !m.spam).slice(0, 6);
+    $('#pop-empty').hidden = items.length > 0;
+    for (const m of items) {
+      list.append(h('li', { class: `pop__item${m.read_at ? '' : ' is-unread'}` },
+        h('button', { class: 'pop__open', type: 'button', onclick: () => { closePop(); route(`messages/${m.id}`); } },
+          h('span', { class: 'pop__who' }, h('strong', { text: m.name }), h('span', { class: 'pop__when', text: ago(m.created_at) })),
+          h('span', { class: 'pop__snip', text: oneLine(m.body, 90) })),
+        h('a', { class: 'pop__gmail', href: gmailReply(m), target: '_blank', rel: 'noopener', 'aria-label': `Beantwoord ${m.name} in Gmail` }, icon(ICON.mail), 'Gmail')));
+    }
+  }
+  function openPop() {
+    renderPop();
+    pop.hidden = false;
+    $('#bell').setAttribute('aria-expanded', 'true');
+    const first = pop.querySelector('.pop__open, #pop-all');
+    if (first) first.focus();
+  }
+  function closePop() {
+    pop.hidden = true;
+    $('#bell').setAttribute('aria-expanded', 'false');
+  }
+  $('#bell').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (!pop.hidden) { closePop(); return; }
+    openPop();
+    await loadMessages();
+  });
+  $('#pop-all').addEventListener('click', () => { closePop(); openId = null; route('messages'); });
+  document.addEventListener('click', (e) => { if (!pop.hidden && !pop.contains(e.target) && !$('#bell').contains(e.target)) closePop(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) { closePop(); $('#bell').focus(); } });
+
+  /* new messages show up without a reload */
+  setInterval(() => { if (ME && document.visibilityState === 'visible') loadMessages(); }, 60e3);
+  document.addEventListener('visibilitychange', () => { if (ME && document.visibilityState === 'visible') loadMessages(); });
+
+  /* ------------------------------------------------------------------ app install + notifications */
+  const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isAndroid = () => /android/i.test(navigator.userAgent);
+  const isPhone = () => matchMedia('(max-width: 820px)').matches && (matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0);
+  const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  let installEvent = null;
+  /* closing a popup without acting hides it for a week on that device */
+  const snoozed = (k) => Date.now() < Number(store.get(`sloca_snooze_${k}`, 0));
+  const snooze = (k) => store.set(`sloca_snooze_${k}`, Date.now() + 7 * 864e5);
+  const keyBytes = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+  const deviceLabel = () => (isIOS() ? 'iPhone' : isAndroid() ? 'Android' : /Mac/.test(navigator.platform) ? 'Mac' : 'Computer') + (isStandalone() ? ' (app)' : '');
+
+  async function pushSubscription(create) {
+    const reg = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((_, no) => setTimeout(() => no(new Error('De app is nog aan het laden. Probeer het zo opnieuw.')), 8000)),
+    ]);
+    let sub = await reg.pushManager.getSubscription();
+    const key = keyBytes(ME.push.key);
+    const current = sub && sub.options && sub.options.applicationServerKey;
+    /* a subscription made with an older server key can no longer receive anything */
+    if (sub && current && !new Uint8Array(current).every((b, i) => b === key[i])) { await sub.unsubscribe(); sub = null; }
+    if (!sub && create) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    return sub;
+  }
+  async function enablePush() {
+    const perm = await Notification.requestPermission();
+    if (perm === 'denied') throw new Error('Meldingen zijn geblokkeerd. Zet ze aan in de instellingen van je telefoon of browser.');
+    if (perm !== 'granted') throw new Error('Meldingen staan nog uit.');
+    const sub = await pushSubscription(true);
+    await api('push/subscribe', { method: 'POST', body: { subscription: sub.toJSON(), label: deviceLabel() } });
+    toast('Meldingen staan aan. Je krijgt zo een testmelding.');
+    api('push/test', { method: 'POST' }).catch(() => {});
+  }
+  async function disablePush() {
+    if (!pushSupported() || !ME || !ME.push) return;
+    const sub = await pushSubscription(false).catch(() => null);
+    if (!sub) return;
+    await api('push/unsubscribe', { method: 'POST', body: { endpoint: sub.endpoint } }).catch(() => {});
+    await sub.unsubscribe().catch(() => {});
+  }
+  /* keeps the server in step with this device, for example after signing in again */
+  async function syncPush() {
+    if (!pushSupported() || Notification.permission !== 'granted' || !ME || !ME.push) return;
+    try {
+      const sub = await pushSubscription(true);
+      await api('push/subscribe', { method: 'POST', body: { subscription: sub.toJSON(), label: deviceLabel() } });
+    } catch { /* the Berichten card shows the state */ }
+  }
+
+  async function paintPushCard() {
+    const slot = $('#push-card');
+    if (!ME) return;
+    let text;
+    const acts = [];
+    if (!pushSupported()) {
+      text = isIOS() && !isStandalone()
+        ? 'Op de iPhone werken meldingen alleen in de app. Zet het dashboard eerst op je beginscherm en open het daarvandaan.'
+        : 'Deze browser kan geen meldingen ontvangen.';
+    } else if (Notification.permission === 'denied') {
+      text = 'Meldingen zijn geblokkeerd voor deze site. Zet ze aan in de instellingen van je telefoon of browser en kom dan hier terug.';
+    } else if (Notification.permission === 'granted' && (await pushSubscription(false).catch(() => null))) {
+      text = 'Meldingen staan aan op dit apparaat: bij elk nieuw bericht via de site krijg je een melding, met een knop naar Gmail om te antwoorden.';
+      acts.push(h('button', { class: 'pill pill--ghost pill--small', type: 'button', text: 'Stuur een testmelding', onclick: async () => {
+        try {
+          const r = await api('push/test', { method: 'POST' });
+          toast(r.sent ? 'Testmelding verstuurd.' : 'Er ging geen melding uit. Zet meldingen uit en weer aan.');
+        } catch (ex) { toast(ex.message); }
+      } }));
+      acts.push(h('button', { class: 'link-btn', type: 'button', text: 'Uitzetten', onclick: async () => { await disablePush(); toast('Meldingen staan uit op dit apparaat.'); paintPushCard(); } }));
+    } else {
+      text = 'Krijg een melding op dit apparaat zodra er een bericht via de site binnenkomt, met een knop om het in Gmail te beantwoorden.';
+      acts.push(h('button', { class: 'pill pill--small', type: 'button', text: 'Meldingen aanzetten', onclick: async (e) => {
+        e.currentTarget.disabled = true;
+        await enablePush().catch((err) => toast(err.message));
+        paintPushCard();
+      } }));
+    }
+    if (!isStandalone()) {
+      acts.push(h('button', { class: 'link-btn', type: 'button', text: installEvent ? 'Installeer als app' : 'Dashboard als app', onclick: () => (installEvent ? promptInstall() : openInstallSheet()) }));
+    }
+    slot.textContent = '';
+    slot.append(h('section', { class: 'card push-card' },
+      h('div', {}, h('h2', { text: 'Meldingen' }), h('p', { class: 'card__sub', text })),
+      h('div', { class: 'actions' }, acts)));
+  }
+
+  async function promptInstall() {
+    if (!installEvent) { openInstallSheet(); return 'guide'; }
+    installEvent.prompt();
+    const choice = await installEvent.userChoice;
+    installEvent = null; /* a prompt can be used once; Chrome sends a new one later */
+    if (choice.outcome === 'accepted') toast('Het dashboard staat nu als app op je apparaat.');
+    paintPushCard();
+    return choice.outcome;
+  }
+
+  function openSheet(kind, ...kids) {
+    const open = $('dialog.sheet');
+    if (open) open.close();
+    const d = h('dialog', { class: 'sheet', 'aria-labelledby': 'sheet-title' },
+      h('div', { class: 'sheet__body' }, h('button', { class: 'sheet__close', type: 'button', 'aria-label': 'Sluiten', 'data-close': '' }, icon(ICON.cross)), ...kids));
+    d.dataset.kind = kind;
+    d.addEventListener('click', (e) => { if (e.target === d || e.target.closest('[data-close]')) d.close(); });
+    d.addEventListener('close', () => { if (!d.dataset.done) snooze(kind); d.remove(); });
+    document.body.append(d);
+    d.showModal();
+    return d;
+  }
+  const step = (d, ...content) => h('li', {}, h('span', { class: 'step__ico' }, icon(d)), h('span', {}, ...content));
+  const b = (t) => h('strong', { text: t });
+
+  function paintAndroid(d) {
+    const panel = $('[data-os-panel="android"]', d);
+    if (!panel) return;
+    panel.textContent = '';
+    const steps = h('ol', { class: 'steps' },
+      step(ICON.dots, 'Tik in Chrome rechtsboven op de ', b('drie puntjes'), '.'),
+      step(ICON.phone, 'Kies ', b('App installeren'), ' of ', b('Toevoegen aan startscherm'), '.'),
+      step(ICON.check, 'Tik op ', b('Installeren'), '. Het Slocabaia-icoon staat nu tussen je apps.'));
+    if (installEvent) {
+      panel.append(
+        h('button', { class: 'pill', type: 'button', onclick: async () => {
+          if ((await promptInstall()) === 'accepted') { d.dataset.done = '1'; d.close(); } else paintAndroid(d);
+        } }, icon(ICON.download), 'Installeer de app'),
+        h('details', { class: 'sheet__more' }, h('summary', { text: 'Liever via het menu van je browser' }), steps));
+    } else {
+      if (!isAndroid()) panel.append(h('p', { class: 'sheet__note', text: 'Op een Android-telefoon staat hier een knop Installeer de app. Via het menu kan het ook:' }));
+      panel.append(steps);
+    }
+  }
+
+  function openInstallSheet() {
+    const d = openSheet('install',
+      h('div', { class: 'sheet__head' }, h('img', { class: 'sheet__app', src: '/admin/icons/icon-192.png', alt: '' }), h('h2', { id: 'sheet-title', text: 'Zet het dashboard op je telefoon' })),
+      h('p', { class: 'sheet__lead', text: 'Dan open je het met één tik vanaf je beginscherm, met het Slocabaia-logo als icoon. En je krijgt een melding bij elk nieuw bericht.' }),
+      h('div', { class: 'seg sheet__tabs', role: 'tablist', 'aria-label': 'Soort telefoon' },
+        h('button', { type: 'button', role: 'tab', 'data-os': 'ios', text: 'iPhone' }),
+        h('button', { type: 'button', role: 'tab', 'data-os': 'android', text: 'Android' })),
+      h('div', { 'data-os-panel': 'ios', role: 'tabpanel' },
+        h('ol', { class: 'steps' },
+          step(ICON.share, 'Tik onderin Safari op het ', b('deelicoon'), '. Zie je alleen drie puntjes, tik daar dan eerst op en kies ', b('Deel'), '.'),
+          step(ICON.plus, 'Scroll omlaag en kies ', b('Zet op beginscherm'), '.'),
+          step(ICON.check, 'Tik op ', b('Voeg toe'), '. Het Slocabaia-icoon staat nu op je beginscherm.')),
+        h('p', { class: 'sheet__note', text: 'Op de iPhone werken meldingen alleen als je het dashboard via dat icoon opent. Kom je hier via Instagram, WhatsApp of Gmail, open de pagina dan eerst in Safari.' })),
+      h('div', { 'data-os-panel': 'android', role: 'tabpanel' }),
+      h('div', { class: 'actions sheet__actions' }, h('button', { class: 'pill pill--ghost', type: 'button', 'data-close': '', text: 'Niet nu' })));
+    paintAndroid(d);
+    const show = (os) => {
+      $$('[data-os]', d).forEach((x) => x.setAttribute('aria-selected', String(x.dataset.os === os)));
+      $$('[data-os-panel]', d).forEach((p) => { p.hidden = p.dataset.osPanel !== os; });
+    };
+    show(isAndroid() ? 'android' : 'ios');
+    $$('[data-os]', d).forEach((x) => x.addEventListener('click', () => show(x.dataset.os)));
+  }
+
+  function openPushSheet() {
+    const go = h('button', { class: 'pill', type: 'button', text: 'Meldingen aanzetten' });
+    const d = openSheet('push',
+      h('div', { class: 'sheet__head' }, h('span', { class: 'sheet__app sheet__bell' }, icon(ICON.bell)), h('h2', { id: 'sheet-title', text: 'Meldingen aanzetten' })),
+      h('p', { class: 'sheet__lead', text: 'Krijg meteen een popup op deze telefoon als er een bericht via het contactformulier binnenkomt. Eén tik opent het bericht, met een knop om te antwoorden in Gmail.' }),
+      h('div', { class: 'mock', 'aria-hidden': 'true' },
+        h('img', { src: '/admin/icons/icon-192.png', alt: '' }),
+        h('div', {},
+          h('span', { class: 'mock__app' }, 'SLOCABAIA', h('span', { text: 'nu' })),
+          h('strong', { text: 'Nieuw bericht van Maya' }),
+          h('span', { class: 'mock__txt', text: 'Hi! We would love to collaborate on our next event in Paramaribo.' }))),
+      h('p', { class: 'sheet__note', text: 'Je telefoon vraagt daarna om toestemming. Kies dan Sta toe of Toestaan.' }),
+      h('div', { class: 'actions sheet__actions' }, go, h('button', { class: 'pill pill--ghost', type: 'button', 'data-close': '', text: 'Niet nu' })));
+    go.addEventListener('click', async () => {
+      go.disabled = true;
+      try {
+        await enablePush();
+        d.dataset.done = '1';
+        d.close();
+        paintPushCard();
+      } catch (err) { toast(err.message); } finally { go.disabled = false; }
+    });
+  }
+
+  /* On a phone: first the install guide, later (or inside the app) the notifications popup. */
+  let prompted = false;
+  let waitedForInstall = false;
+  function maybePrompt() {
+    if (prompted || !ME || !isPhone() || $('dialog[open]')) return;
+    if (!isStandalone() && !snoozed('install')) {
+      /* Chrome offers its one-tap install only after some use; wait a little for it */
+      if (isAndroid() && !installEvent && !waitedForInstall) { waitedForInstall = true; setTimeout(maybePrompt, 40e3); return; }
+      prompted = true;
+      openInstallSheet();
+    } else if (pushSupported() && Notification.permission === 'default' && !snoozed('push')) {
+      prompted = true;
+      openPushSheet();
+    }
+  }
+  addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    installEvent = e;
+    if (ME) paintPushCard();
+    const d = $('dialog.sheet[data-kind="install"]');
+    if (d) paintAndroid(d);
+    else maybePrompt();
+  });
+  addEventListener('appinstalled', () => {
+    installEvent = null;
+    const d = $('dialog.sheet[data-kind="install"]');
+    if (d) { d.dataset.done = '1'; d.close(); }
+    if (ME) paintPushCard();
+  });
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/admin/sw.js', { scope: '/admin/' }).catch(() => {});
+    /* a tapped notification sends an open dashboard window to its message */
+    navigator.serviceWorker.addEventListener('message', (e) => {
+      const u = e.data && e.data.open;
+      if (typeof u === 'string' && u.startsWith('/admin/')) route(u.split('#')[1] || 'messages');
+    });
+  }
+
+  /* ------------------------------------------------------------------ boot */
+  async function boot() {
+    try { ME = await api('me'); } catch { return; } /* 401 already showed the login */
+    showApp();
+    $('#testmode').hidden = ME.mail.mode !== 'log';
+    loaded.clear();
+    lastUnread = null;
+    setBadge(ME.unread);
+    route(location.hash.slice(1));
+    syncPush();
+    setTimeout(maybePrompt, 2500);
+  }
+  boot();
+})();
+</script>
+</body>
+</html>

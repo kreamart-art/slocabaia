@@ -1,0 +1,15 @@
+{
+  "name": "slocabaia",
+  "private": true,
+  "description": "The House of Slocabaia: one-pager, member list and newsletter dashboard",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js --port=5410",
+    "set-password": "node server/set-password.js",
+    "test": "node --test \"test/*.test.mjs\""
+  }
+}
