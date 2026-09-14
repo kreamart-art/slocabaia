@@ -95,6 +95,8 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ember);outline-o
 .login h1{font-family:var(--f-display);font-weight:900;font-size:30px;text-transform:uppercase;margin:10px 0 22px}
 .login .pill{width:100%;margin-top:6px}
 .error{margin:14px 0 0;min-height:1.2em;color:#ff8c8c;font-size:14px}
+.login__note{margin:0 0 6px;padding:12px 14px;border-radius:12px;border:1px solid rgb(250 178 25 / .35);background:rgb(250 178 25 / .08);color:var(--text-2);font-size:14px;line-height:1.5}
+.login__lead{margin:-10px 0 18px;color:var(--text-2);font-size:14px}
 
 /* ---------- shell ---------- */
 .top{
@@ -350,14 +352,35 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
   <form id="login-form" novalidate>
     <p class="mark">Slocabaia</p>
     <h1>Dashboard</h1>
-    <label class="field"><span>E-mail</span>
-      <input id="l-email" type="email" autocomplete="username" required>
-    </label>
-    <label class="field"><span>Wachtwoord</span>
-      <input id="l-pass" type="password" autocomplete="current-password" required>
-    </label>
-    <button class="pill" type="submit">Inloggen</button>
+    <p class="login__note" id="l-note" role="status" hidden>
+      Er is nog geen wachtwoord ingesteld. Open de instellink die je hebt gekregen: daarmee kies je
+      zelf je wachtwoord en ben je meteen ingelogd.
+    </p>
+    <div id="l-fields">
+      <label class="field"><span>E-mail</span>
+        <input id="l-email" type="email" autocomplete="username" required>
+      </label>
+      <label class="field"><span>Wachtwoord</span>
+        <input id="l-pass" type="password" autocomplete="current-password" required>
+      </label>
+      <button class="pill" type="submit">Inloggen</button>
+    </div>
     <p class="error" id="l-error" role="alert"></p>
+  </form>
+
+  <!-- opened through a one-time setup link: /admin/#setup=<token> -->
+  <form id="setup-form" novalidate hidden>
+    <p class="mark">Slocabaia</p>
+    <h1>Wachtwoord kiezen</h1>
+    <p class="login__lead">Kies het wachtwoord waarmee je voortaan inlogt, met je e-mailadres slocabaia@gmail.com. Minstens 12 tekens.</p>
+    <label class="field"><span>Nieuw wachtwoord</span>
+      <input id="s-pass" type="password" autocomplete="new-password" minlength="12" required>
+    </label>
+    <label class="field"><span>Nog een keer</span>
+      <input id="s-pass2" type="password" autocomplete="new-password" minlength="12" required>
+    </label>
+    <button class="pill" type="submit">Wachtwoord opslaan</button>
+    <p class="error" id="s-error" role="alert"></p>
   </form>
 </main>
 
@@ -704,10 +727,27 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
   }
 
   /* ------------------------------------------------------------------ auth */
-  const showLogin = () => {
+  /* a one-time link to choose the password: /admin/#setup=<token> */
+  const setupToken = () => {
+    const m = /^#setup=([A-Za-z0-9_-]{20,64})$/.exec(location.hash);
+    return m ? m[1] : null;
+  };
+  const showLogin = async () => {
     $('#app').hidden = true;
     $('#login').hidden = false;
-    setTimeout(() => $('#l-email').focus(), 0);
+    const token = setupToken();
+    $('#setup-form').hidden = !token;
+    $('#login-form').hidden = Boolean(token);
+    if (token) { setTimeout(() => $('#s-pass').focus(), 0); return; }
+    /* say so straight away when there is no password yet, instead of after a failed attempt */
+    let passwordSet = true;
+    try {
+      const r = await fetch('/api/admin/status', { headers: { Accept: 'application/json' } });
+      if (r.ok) passwordSet = (await r.json()).passwordSet !== false;
+    } catch { /* offline: show the form */ }
+    $('#l-note').hidden = passwordSet;
+    $('#l-fields').hidden = !passwordSet;
+    if (passwordSet) setTimeout(() => $('#l-email').focus(), 0);
   };
   const showApp = () => {
     $('#login').hidden = true;
@@ -733,6 +773,34 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
         ex.status === 429 ? 'Te veel pogingen. Wacht een kwartier en probeer het opnieuw.' :
         ex.status === 503 ? 'Er is nog geen wachtwoord ingesteld. Draai in de map slocabaia: npm run set-password' :
         'Inloggen lukt nu niet. Probeer het zo opnieuw.';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $('#setup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = $('#s-error');
+    err.textContent = '';
+    const a = $('#s-pass').value;
+    const b = $('#s-pass2').value;
+    if (a.length < 12) { err.textContent = 'Kies een wachtwoord van minstens 12 tekens.'; return; }
+    if (a !== b) { err.textContent = 'De twee wachtwoorden zijn niet hetzelfde.'; return; }
+    const btn = $('button[type=submit]', e.target);
+    btn.disabled = true;
+    try {
+      await api('setup', { method: 'POST', body: { token: setupToken(), password: a } });
+      $('#s-pass').value = '';
+      $('#s-pass2').value = '';
+      history.replaceState(null, '', location.pathname);
+      toast('Je wachtwoord is ingesteld. Welkom.');
+      await boot();
+    } catch (ex) {
+      err.textContent =
+        ex.status === 410 ? 'Deze link is verlopen of al gebruikt. Vraag om een nieuwe link.' :
+        ex.status === 429 ? 'Te veel pogingen. Wacht een kwartier en probeer het opnieuw.' :
+        ex.status === 409 ? 'Het wachtwoord wordt op de server beheerd; deze link werkt daarom niet.' :
+        'Opslaan lukt nu niet. Probeer het zo opnieuw.';
     } finally {
       btn.disabled = false;
     }
@@ -1941,6 +2009,7 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
 
   /* ------------------------------------------------------------------ boot */
   async function boot() {
+    if (setupToken()) { showLogin(); return; } /* a setup link goes straight to choosing the password */
     try { ME = await api('me'); } catch { return; } /* 401 already showed the login */
     showApp();
     $('#testmode').hidden = ME.mail.mode !== 'log';

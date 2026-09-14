@@ -7,7 +7,7 @@ import { pipeline } from 'node:stream';
 import { join, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDb } from './db.js';
-import { verifyPassword, newToken, sha256, limiter } from './auth.js';
+import { verifyPassword, hashPassword, newToken, sha256, limiter } from './auth.js';
 import { createMailer } from './mail.js';
 import { HttpError, send, json, readBody, readJson } from './http.js';
 import { createSite } from './site.js';
@@ -27,7 +27,9 @@ const PORT = Number(argPort ? argPort.slice(7) : env.PORT || 3000);
 const DATA_DIR = resolve(ROOT, env.DATA_DIR || 'data');
 const SITE_URL = (env.SITE_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
 const ADMIN_EMAIL = String(env.ADMIN_EMAIL || 'slocabaia@gmail.com').trim().toLowerCase();
-const ADMIN_HASH = env.ADMIN_PASSWORD_HASH || '';
+// A hash in the environment wins; otherwise the owner chooses a password with a one-time
+// setup link (npm run admin-link) and its hash is kept in the database.
+const ENV_HASH = env.ADMIN_PASSWORD_HASH || '';
 const PROD = env.NODE_ENV === 'production';
 const TRUST_PROXY = env.TRUST_PROXY === '1';
 const COOKIE = 'sloca_admin';
@@ -44,6 +46,24 @@ const mailer = createMailer({
 });
 
 const site = createSite({ db, root: ROOT, dataDir: DATA_DIR });
+
+// small settings in the site table (JSON values)
+const getSetting = (key) => {
+  const r = db.prepare('SELECT value FROM site WHERE key = ?').get(key);
+  try {
+    return r ? JSON.parse(r.value) : null;
+  } catch {
+    return null;
+  }
+};
+const putSetting = (key, value) =>
+  db
+    .prepare(
+      'INSERT INTO site (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at',
+    )
+    .run(key, JSON.stringify(value), new Date().toISOString());
+const delSetting = (key) => db.prepare('DELETE FROM site WHERE key = ?').run(key);
+const passwordHash = () => ENV_HASH || getSetting('admin_password')?.hash || '';
 const push = createPush({
   db,
   subject: `mailto:${ADMIN_EMAIL}`,
@@ -427,12 +447,18 @@ async function login(req, res) {
   if (!loginLimit.take(ip)) return json(res, 429, { error: 'Too many attempts. Wait 15 minutes and try again.' });
   checkCsrf(req);
   const { email = '', password = '' } = await readJson(req);
-  if (!ADMIN_HASH) return json(res, 503, { error: 'No dashboard password set yet. Run: npm run set-password' });
-  const okPassword = verifyPassword(password, ADMIN_HASH); // always computed, so timing does not reveal the email check
+  const hash = passwordHash();
+  if (!hash) return json(res, 503, { error: 'No dashboard password set yet. Open the setup link (npm run admin-link).' });
+  const okPassword = verifyPassword(password, hash); // always computed, so timing does not reveal the email check
   if (String(email).trim().toLowerCase() !== ADMIN_EMAIL || !okPassword) {
     return json(res, 401, { error: 'Email or password is wrong.' });
   }
   loginLimit.reset(ip);
+  startSession(req, res);
+  json(res, 200, { ok: true, email: ADMIN_EMAIL });
+}
+
+function startSession(req, res) {
   const token = newToken();
   const now = new Date();
   db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(now.toISOString());
@@ -442,6 +468,32 @@ async function login(req, res) {
     new Date(now.getTime() + SESSION_DAYS * 864e5).toISOString(),
   );
   res.setHeader('Set-Cookie', sessionCookie(req, token, SESSION_DAYS * 86400));
+}
+
+/** lets the login screen say so when no password exists yet */
+function adminStatus(req, res) {
+  json(res, 200, { passwordSet: Boolean(passwordHash()) });
+}
+
+/** A one-time setup link (made with npm run admin-link, valid 48 hours) lets the owner choose
+    or reset the password. Without a valid link nobody can set one. */
+async function setup(req, res) {
+  const ip = clientIp(req);
+  if (!loginLimit.take(ip)) return json(res, 429, { error: 'Too many attempts. Wait 15 minutes and try again.' });
+  checkCsrf(req);
+  const { token = '', password = '' } = await readJson(req);
+  if (ENV_HASH) return json(res, 409, { error: 'The password is managed on the server (ADMIN_PASSWORD_HASH).' });
+  const s = getSetting('admin_setup');
+  const valid = s && typeof token === 'string' && TOKEN_RE.test(token) && s.hash === sha256(token) && s.expires > iso();
+  if (!valid) return json(res, 410, { error: 'This link has expired or was already used.' });
+  if (typeof password !== 'string' || password.length < 12 || password.length > 200) {
+    return json(res, 400, { error: 'Choose a password of at least 12 characters.' });
+  }
+  putSetting('admin_password', { hash: hashPassword(password), set_at: iso() });
+  delSetting('admin_setup');
+  db.prepare('DELETE FROM sessions').run(); // a new password signs every other device out
+  loginLimit.reset(ip);
+  startSession(req, res);
   json(res, 200, { ok: true, email: ADMIN_EMAIL });
 }
 
@@ -730,6 +782,8 @@ on('GET', /^\/api\/confirm$/, confirm);
 on('GET', /^\/u$/, unsubscribePage);
 on('POST', /^\/u$/, unsubscribe);
 on('POST', /^\/api\/admin\/login$/, login);
+on('GET', /^\/api\/admin\/status$/, adminStatus);
+on('POST', /^\/api\/admin\/setup$/, setup);
 on('POST', /^\/api\/admin\/logout$/, logout);
 on('GET', /^\/api\/admin\/me$/, admin(me));
 on('GET', /^\/api\/admin\/stats$/, admin(stats));
@@ -822,7 +876,7 @@ for (const { id } of db.prepare("SELECT id FROM campaigns WHERE status = 'sendin
 }
 
 server.listen(PORT, env.HOST || '0.0.0.0', () => {
-  const warn = ADMIN_HASH ? '' : '  |  no dashboard password yet: run npm run set-password';
+  const warn = passwordHash() ? '' : '  |  no dashboard password yet: run npm run admin-link';
   console.log(`Slocabaia on ${SITE_URL}  |  mail: ${mailer.mode === 'log' ? 'test mode (data/outbox)' : 'Resend'}${warn}`);
 });
 for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => server.close(() => process.exit(0)));
