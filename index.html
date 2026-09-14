@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The House of Slocabaia</title>
-<meta name="description" content="Slocabaia is a multidisciplinary creative platform that started as a fashion label and is now a house of creativity, culture and community. Paramaribo, est. 2017.">
+<meta name="description" content="Slocabaia is a multidisciplinary creative platform that started as a fashion label and is now a house of creativity, culture and community. Est. 2017.">
 <meta name="theme-color" content="#050505">
 <!-- Motion is opt-in: without JS (or if the script fails) the page renders complete and static. -->
 <script>document.documentElement.classList.add('js')</script>
@@ -13,7 +13,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Slocabaia">
 <meta property="og:title" content="The House of Slocabaia">
-<meta property="og:description" content="A house of creativity, culture and community. Paramaribo, est. 2017.">
+<meta property="og:description" content="A house of creativity, culture and community. Est. 2017.">
 <meta property="og:image" content="https://slocabaia.com/img/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -386,11 +386,13 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   background:radial-gradient(52% 48% at 50% 30%, rgb(255 94 20 / .085), transparent 70%);
 }
 .manifesto__inner{position:relative;max-width:74ch;margin-inline:auto}
+/* spaced out on the owners' request (2026-09-14): more air between lines and paragraphs */
 .manifesto p{
   font-size:var(--t-lead);
-  line-height:1.62;
+  line-height:1.9;
+  letter-spacing:.01em;
   color:var(--bone);
-  margin:0 0 1.15em;
+  margin:0 0 1.7em;
   text-wrap:pretty;
 }
 .manifesto p:last-of-type{margin-bottom:0}
@@ -789,7 +791,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
        ====================================================================== -->
   <section class="manifesto" id="about" aria-labelledby="about-h">
     <div class="wrap manifesto__inner">
-      <h2 id="about-h" class="meta" data-r="text" style="margin:0 0 clamp(26px,4vh,44px)">Who we are</h2>
+      <!-- the owners dropped the visible "Who we are" label (2026-09-14); screen readers keep it -->
+      <h2 id="about-h" class="sr-only">Who we are</h2>
 
       <p data-r="text" style="--d:60ms">
         We are <a class="handle" href="https://instagram.com/thehouseofslocabaia" target="_blank" rel="noopener">@thehouseofslocabaia</a>,
@@ -807,7 +810,6 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 
       <div class="stamp" data-r="text" style="--d:320ms">
         <span><b>5.86638</b>, <b>-55.16682</b></span>
-        <span>Paramaribo</span>
         <span>Est. <b>2017</b></span>
       </div>
     </div>
@@ -1386,7 +1388,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
         <p>That is the whole point of the house. Artists, makers, brands and venues: email ${MAIL}.</p>
 
         <h3>Where are you based?</h3>
-        <p>Paramaribo, Suriname, since 2017. We work with people everywhere.</p>
+        <p>Based in the Netherlands. We work with people everywhere.</p>
 
         <h3>How do I reach a human?</h3>
         <p>${MAIL}. We answer within two working days.</p>
