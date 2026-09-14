@@ -347,7 +347,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   position:absolute;z-index:3;
   right:max(var(--margin), env(safe-area-inset-right));
   bottom:clamp(16px,3.2vh,34px);
-  width:44px;height:44px;border-radius:50%;
+  width:32px;height:32px;border-radius:50%;
   display:grid;place-items:center;
   background:rgb(5 5 5 / .42);
   border:1px solid rgb(242 239 232 / .3);
@@ -359,7 +359,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .hero__pause[hidden]{display:none}
 .hero__pause:hover{background:rgb(5 5 5 / .64);border-color:var(--ember);color:var(--ember)}
 .hero__pause:focus-visible{outline:2px solid var(--ember);outline-offset:3px}
-.hero__pause svg{width:16px;height:16px}
+/* the circle is small, the touch area around it stays 44px */
+.hero__pause::after{content:"";position:absolute;inset:-6px;border-radius:50%}
+.hero__pause svg{width:12px;height:12px}
 .hero__pause .i-pause{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
 .hero__pause .i-play{fill:currentColor;display:none}
 .hero__pause.is-paused .i-pause{display:none}
@@ -1128,7 +1130,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
     /* the still people get when the film cannot play; picked in the dashboard
        (5.07s is the SB crest of the original film) */
     const STILL = Math.max(0, Number(vid.dataset.still) || 0);
-    let blocked = REDUCED;
+    let blocked = false;
     let userPaused = false;
     const showStill = () => {
       blocked = true;
@@ -1148,14 +1150,32 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
     vid.addEventListener('error', fail);
     const lastSource = vid.querySelector('source:last-of-type');
     if (lastSource) lastSource.addEventListener('error', fail);
-    /* A refusal by the browser (e.g. iOS Low Power Mode) shows the still. An AbortError only
-       means a pause() interrupted a pending start, which must not freeze the film for good. */
+    /* A refusal by the browser (e.g. iOS Low Power Mode) shows the still, and the film then
+       starts on the visitor's first tap, click or key instead of waiting for the play button.
+       An AbortError only means a pause() interrupted a pending start, which must not freeze
+       the film for good. */
+    const GESTURES = ['pointerup', 'touchend', 'click', 'keydown'];
+    let armed = false;
+    const startOnFirstGesture = () => {
+      if (armed) return;
+      armed = true;
+      const go = () => {
+        GESTURES.forEach((t) => removeEventListener(t, go, true));
+        armed = false;
+        if (!userPaused) { blocked = false; start(); }
+      };
+      GESTURES.forEach((t) => addEventListener(t, go, { capture: true, passive: true }));
+    };
     const start = () => {
       const p = vid.play();
-      if (p && p.catch) p.catch((err) => { if (err && err.name === 'NotAllowedError') showStill(); });
+      if (p && p.catch) {
+        p.catch((err) => {
+          if (err && err.name === 'NotAllowedError') { showStill(); startOnFirstGesture(); }
+        });
+      }
     };
     /* The pause button mirrors the film's real state, so it also reads "play" when the
-       browser refused autoplay or reduced motion shows the still: one tap starts it. */
+       browser refused autoplay: one tap starts it. */
     if (pauseBtn) {
       const mark = () => {
         pauseBtn.classList.toggle('is-paused', vid.paused);
@@ -1170,8 +1190,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
       mark();
       pauseBtn.hidden = false;
     }
-    if (REDUCED) { vid.removeAttribute('autoplay'); showStill(); }
-    else start();
+    /* The film plays straight away for everyone, reduced-motion settings included (the owner's
+       choice, 2026-09-13); the pause button bottom right is the way to stop it. */
+    start();
     /* stop decoding the loop while people read further down; a film the visitor paused
        stays paused when they scroll back */
     if ('IntersectionObserver' in window) {
