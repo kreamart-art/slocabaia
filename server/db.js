@@ -86,6 +86,64 @@ export function openDb(dataDir) {
       last_ok_at TEXT
     );
 
+    -- what the shop sells; photos and sizes live in the JSON columns
+    CREATE TABLE IF NOT EXISTS products (
+      id          INTEGER PRIMARY KEY,
+      slug        TEXT NOT NULL UNIQUE,
+      name        TEXT NOT NULL,
+      tagline     TEXT NOT NULL DEFAULT '',
+      body        TEXT NOT NULL DEFAULT '',
+      price_cents INTEGER NOT NULL DEFAULT 0,
+      status      TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'live', 'soldout')),
+      variants    TEXT NOT NULL DEFAULT '[]',   -- [{ key, label, stock }]
+      images      TEXT NOT NULL DEFAULT '[]',   -- [{ id, src, thumb, w, h, tw, alt }]
+      position    INTEGER NOT NULL DEFAULT 0,
+      created_at  TEXT NOT NULL,
+      updated_at  TEXT NOT NULL
+    );
+
+    -- one row per order; the price is always the one the server worked out
+    CREATE TABLE IF NOT EXISTS orders (
+      id             INTEGER PRIMARY KEY,
+      ref            TEXT NOT NULL UNIQUE,   -- SB-XXXXXX, the reference people see
+      token          TEXT NOT NULL UNIQUE,   -- the secret in the thank-you link
+      status         TEXT NOT NULL CHECK (status IN ('open', 'paid', 'failed', 'canceled', 'expired', 'shipped')),
+      name           TEXT NOT NULL,
+      email          TEXT NOT NULL,
+      phone          TEXT,
+      street         TEXT NOT NULL DEFAULT '',
+      postcode       TEXT NOT NULL DEFAULT '',
+      city           TEXT NOT NULL DEFAULT '',
+      country        TEXT NOT NULL DEFAULT '',
+      note           TEXT,
+      items          TEXT NOT NULL,          -- [{ product_id, name, variant, qty, price_cents }]
+      subtotal_cents INTEGER NOT NULL,
+      shipping_cents INTEGER NOT NULL,
+      total_cents    INTEGER NOT NULL,
+      payment_id     TEXT,
+      payment_method TEXT,
+      created_at     TEXT NOT NULL,
+      paid_at        TEXT,
+      shipped_at     TEXT,
+      read_at        TEXT
+    );
+    CREATE INDEX IF NOT EXISTS orders_created ON orders (created_at DESC);
+
+    -- events that happened, with their photo sets; visitors can download each photo
+    CREATE TABLE IF NOT EXISTS events (
+      id         INTEGER PRIMARY KEY,
+      slug       TEXT NOT NULL UNIQUE,
+      title      TEXT NOT NULL,
+      held_on    TEXT,                      -- YYYY-MM-DD
+      place      TEXT NOT NULL DEFAULT '',
+      body       TEXT NOT NULL DEFAULT '',
+      status     TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'live')),
+      photos     TEXT NOT NULL DEFAULT '[]', -- [{ id, full, thumb, w, h, tw, alt }]
+      position   INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
     -- only a hash of the session token is stored
     CREATE TABLE IF NOT EXISTS sessions (
       token_hash TEXT PRIMARY KEY,
@@ -93,5 +151,11 @@ export function openDb(dataDir) {
       expires_at TEXT NOT NULL
     );
   `);
+
+  // Members gave only an email at first; these came later and are added to older databases here.
+  const columns = db.prepare('PRAGMA table_info(subscribers)').all().map((c) => c.name);
+  for (const [name, type] of [['name', 'TEXT'], ['phone', 'TEXT'], ['city', 'TEXT'], ['country', 'TEXT'], ['birthday', 'TEXT']]) {
+    if (!columns.includes(name)) db.exec(`ALTER TABLE subscribers ADD COLUMN ${name} ${type}`);
+  }
   return db;
 }

@@ -11,7 +11,20 @@ import { verifyPassword, hashPassword, newToken, sha256, limiter } from './auth.
 import { createMailer } from './mail.js';
 import { HttpError, send, json, readBody, readJson } from './http.js';
 import { createSite } from './site.js';
-import { renderNewsletter, renderConfirmEmail, renderUnsubscribePage, renderContactAlert } from './render.js';
+import { createMedia } from './media.js';
+import { createShop } from './shop.js';
+import { createEvents } from './events.js';
+import { createPayments } from './mollie.js';
+import { euro, oneLine, text } from './util.js';
+import {
+  renderNewsletter,
+  renderConfirmEmail,
+  renderUnsubscribePage,
+  renderContactAlert,
+  renderOrderEmail,
+  renderOrderAlert,
+  renderOrderPage,
+} from './render.js';
 import { createPush } from './push.js';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -45,7 +58,13 @@ const mailer = createMailer({
   outboxDir: join(DATA_DIR, 'outbox'),
 });
 
-const site = createSite({ db, root: ROOT, dataDir: DATA_DIR });
+const media = createMedia({ dataDir: DATA_DIR });
+const site = createSite({ db, root: ROOT, media, onNotice: (n) => notifyOwner(n) });
+const payments = createPayments({ apiKey: env.MOLLIE_API_KEY || '', siteUrl: SITE_URL, apiBase: env.MOLLIE_API_BASE || '' });
+const shop = createShop({ db, media, payments, onOrderPaid: (order) => orderPaid(order) });
+const events = createEvents({ db, media });
+// one sweep for all of them: half-finished uploads, and media nothing points at any more
+media.sweep([...site.mediaNames(), ...shop.mediaNames(), ...events.mediaNames()]);
 
 // small settings in the site table (JSON values)
 const getSetting = (key) => {
@@ -81,6 +100,7 @@ const ALIAS_HOSTS = new Set(
 const loginLimit = limiter({ max: 8, windowMs: 15 * 60e3 });
 const subscribeLimit = limiter({ max: 6, windowMs: 10 * 60e3 });
 const contactLimit = limiter({ max: 5, windowMs: 10 * 60e3 });
+const orderLimit = limiter({ max: 10, windowMs: 10 * 60e3 });
 const confirmMailLimit = limiter({ max: 3, windowMs: 24 * 3600e3 });
 const confirmMailCap = limiter({ max: 300, windowMs: 3600e3 }); // all confirmation mail together
 
@@ -195,7 +215,7 @@ function resolvePublic(pathname) {
   return PUBLIC_DIRS.some((d) => abs.startsWith(d)) ? abs : null;
 }
 
-async function serveFile(req, res, file, cache) {
+async function serveFile(req, res, file, cache, extra) {
   let st;
   try {
     st = await stat(file);
@@ -209,6 +229,7 @@ async function serveFile(req, res, file, cache) {
     'Accept-Ranges': 'bytes',
     'Last-Modified': st.mtime.toUTCString(),
     'Cache-Control': cache || (ext === '.html' ? 'no-cache' : 'public, max-age=86400'),
+    ...extra,
   };
   if (file.startsWith(ADMIN_DIR)) Object.assign(headers, ADMIN_HEADERS);
 
@@ -244,8 +265,15 @@ async function serveFile(req, res, file, cache) {
 const stream = (src, res) => pipeline(src, res, () => {});
 
 /** the one-pager, with the hero and photo row chosen in the dashboard written in */
+/** drops a block of markup between <!-- name:start --> and <!-- name:end --> in the page */
+const fill = (html, name, body) =>
+  html.replace(
+    new RegExp(`<!-- ${name}:start -->[\\s\\S]*?<!-- ${name}:end -->`),
+    () => `<!-- ${name}:start -->\n${body}\n  <!-- ${name}:end -->`,
+  );
+
 async function serveIndex(req, res) {
-  const html = await site.renderIndex();
+  const html = fill(fill(await site.renderIndex(), 'shop', shop.markup()), 'events', events.markup());
   const etag = `"${sha256(html).slice(0, 32)}"`;
   const headers = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache', ETag: etag };
   if (req.headers['if-none-match'] === etag) {
@@ -268,6 +296,8 @@ function countView(req) {
   ).run(dayKey(Date.now()), '/');
 }
 
+const safeFileName = (s) => String(s).replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || 'slocabaia.jpg';
+
 /* ---------------------------------------------------------------- members */
 
 async function subscribe(req, res) {
@@ -280,6 +310,15 @@ async function subscribe(req, res) {
   if (email.length > 254 || !EMAIL_RE.test(email)) {
     return json(res, 400, { ok: false, error: 'That email address does not look right.' });
   }
+  const name = oneLine(body.name, 120);
+  if (!name) return json(res, 400, { ok: false, error: 'Tell us your name.' });
+  const extra = {
+    name,
+    phone: oneLine(body.phone, 40) || null,
+    city: oneLine(body.city, 80) || null,
+    country: oneLine(body.country, 60) || null,
+    birthday: /^(\d{4}-)?\d{2}-\d{2}$/.test(oneLine(body.birthday, 10)) ? oneLine(body.birthday, 10) : null,
+  };
 
   const now = iso();
   let sub = db.prepare('SELECT id, status, token FROM subscribers WHERE email = ?').get(email);
@@ -291,26 +330,31 @@ async function subscribe(req, res) {
   const token = newToken();
   if (!sub) {
     const r = db
-      .prepare("INSERT INTO subscribers (email, status, token, source, created_at) VALUES (?, 'pending', ?, 'site', ?)")
-      .run(email, token, now);
+      .prepare(
+        "INSERT INTO subscribers (email, status, token, source, created_at, name, phone, city, country, birthday) VALUES (?, 'pending', ?, 'site', ?, ?, ?, ?, ?, ?)",
+      )
+      .run(email, token, now, extra.name, extra.phone, extra.city, extra.country, extra.birthday);
     sub = { id: Number(r.lastInsertRowid) };
   } else {
-    // a fresh token, so an older confirmation link cannot be replayed
-    db.prepare("UPDATE subscribers SET status = 'pending', token = ?, unsubscribed_at = NULL WHERE id = ?").run(token, sub.id);
+    // a fresh token, so an older confirmation link cannot be replayed; the details are refreshed too
+    db.prepare(
+      "UPDATE subscribers SET status = 'pending', token = ?, unsubscribed_at = NULL, name = ?, phone = ?, city = ?, country = ?, birthday = ? WHERE id = ?",
+    ).run(token, extra.name, extra.phone, extra.city, extra.country, extra.birthday, sub.id);
   }
   // Answer first, mail after: every valid address gets the same reply at the same speed, so
   // neither the timing nor the status code tells whether an address is already a member.
   json(res, 200, { ok: true });
   mailer
-    .send(renderConfirmEmail({ to: email, url: `${SITE_URL}/api/confirm?t=${token}` }))
+    .send(renderConfirmEmail({ to: email, name: extra.name, url: `${SITE_URL}/api/confirm?t=${token}` }))
     .catch((err) => console.error('[subscribe] confirmation mail failed:', err.message));
 }
 
 function confirm(req, res, url) {
   const t = url.searchParams.get('t') || '';
-  const sub = TOKEN_RE.test(t) ? db.prepare('SELECT id, status FROM subscribers WHERE token = ?').get(t) : null;
+  const sub = TOKEN_RE.test(t) ? db.prepare('SELECT id, status, email, name FROM subscribers WHERE token = ?').get(t) : null;
   if (sub && sub.status === 'pending') {
     db.prepare("UPDATE subscribers SET status = 'active', confirmed_at = ? WHERE id = ?").run(iso(), sub.id);
+    notifyOwner({ title: 'Nieuw lid', body: `${sub.name || sub.email} is nu lid.`, url: '/admin/#members', tag: `member-${sub.id}` });
   }
   redirect(res, sub && sub.status !== 'unsubscribed' ? '/?member=confirmed#member' : '/?member=invalid#member');
 }
@@ -367,10 +411,16 @@ async function contact(req, res) {
 
 function listMessages(req, res, url) {
   const limit = clampInt(url.searchParams.get('limit'), 1, 500, 200);
+  // the bell shows messages and paid orders together, so both come out of this one poll
+  const orders = db
+    .prepare("SELECT id, ref, name, total_cents, paid_at, read_at FROM orders WHERE status IN ('paid', 'shipped') ORDER BY id DESC LIMIT 6")
+    .all();
   json(res, 200, {
     rows: db.prepare('SELECT id, name, email, body, created_at, read_at, spam FROM messages ORDER BY id DESC LIMIT ?').all(limit),
     unread: unreadCount(),
     total: db.prepare('SELECT COUNT(*) AS n FROM messages').get().n,
+    orders,
+    unreadOrders: shop.unreadOrders(),
   });
 }
 
@@ -404,11 +454,53 @@ async function pushUnsubscribe(req, res) {
 async function pushTest(req, res) {
   const sent = await push.notify({
     title: 'Slocabaia',
-    body: 'Meldingen staan aan. Zo komt een nieuw bericht van de site binnen.',
+    body: 'Meldingen staan aan. Zo komt een bestelling, een nieuw lid of een bericht binnen.',
     url: '/admin/#messages',
     tag: 'test',
   });
   json(res, 200, { ok: true, sent });
+}
+
+/* ---------------------------------------------------------------- shop */
+
+async function placeOrder(req, res) {
+  if (!orderLimit.take(clientIp(req))) {
+    return json(res, 429, { ok: false, error: 'Too many attempts. Try again in a few minutes.' });
+  }
+  json(res, 200, await shop.placeOrder(await readJson(req, 64 * 1024)));
+}
+
+/** Mollie's webhook carries only a payment id; the real state is read back from Mollie */
+async function shopWebhook(req, res) {
+  const body = await readForm(req);
+  const id = String(body.id || '');
+  json(res, 200, { ok: true }); // Mollie only wants to see a 200
+  shop.syncPayment(id).catch((err) => console.error('[shop] webhook:', err.message));
+}
+
+/** where people land when they come back from the bank */
+async function thanksPage(req, res, url) {
+  const order = await shop.statusByToken(url.searchParams.get('t') || '');
+  page(res, order ? 200 : 404, renderOrderPage({ order, siteUrl: SITE_URL }));
+}
+
+/** a paid order: a notification, a receipt for the buyer and a copy for the inbox */
+async function orderPaid(order) {
+  notifyOwner({
+    title: `Bestelling ${order.ref}`,
+    body: `${order.name} bestelde voor ${euro(order.total_cents)}.`,
+    url: '/admin/#shop',
+    tag: `order-${order.id}`,
+  });
+  mailer.send(renderOrderEmail({ order, siteUrl: SITE_URL })).catch((err) => console.error('[shop] receipt failed:', err.message));
+  mailer
+    .send(renderOrderAlert({ to: ADMIN_EMAIL, order, url: `${SITE_URL}/admin/#shop` }))
+    .catch((err) => console.error('[shop] alert failed:', err.message));
+}
+
+/** every notification to the owner's phones goes through here */
+function notifyOwner(n) {
+  return push.notify(n).catch((err) => console.error('[push]', err.message));
 }
 
 /* ---------------------------------------------------------------- admin auth */
@@ -513,6 +605,8 @@ function me(req, res) {
     siteUrl: SITE_URL,
     push: { key: push.publicKey, devices: push.count() },
     unread: unreadCount(),
+    orders: shop.unreadOrders(),
+    payments: payments.mode,
   });
 }
 
@@ -535,6 +629,10 @@ function stats(req, res, url) {
   const pv = Object.fromEntries(
     db.prepare('SELECT day, SUM(count) AS n FROM pageviews WHERE day >= ? GROUP BY day').all(keys[0]).map((r) => [r.day, r.n]),
   );
+  const paid = db.prepare("SELECT paid_at AS t, total_cents FROM orders WHERE status IN ('paid', 'shipped') AND paid_at >= ?").all(since);
+  const sales = db
+    .prepare("SELECT COUNT(*) AS n, COALESCE(SUM(total_cents), 0) AS cents, MAX(paid_at) AS last FROM orders WHERE status IN ('paid', 'shipped')")
+    .get();
   const camp = db
     .prepare(
       "SELECT COUNT(*) AS n, MAX(sent_at) AS last, COALESCE(SUM(sent), 0) AS emails, COALESCE(SUM(failed), 0) AS failed FROM campaigns WHERE status IN ('sending', 'sent', 'failed')",
@@ -548,7 +646,16 @@ function stats(req, res, url) {
     pageviews: keys.map((k) => pv[k] || 0),
     pageviewsAllTime: db.prepare('SELECT COALESCE(SUM(count), 0) AS n FROM pageviews').get().n,
     campaigns: { sent: camp.n, last: camp.last, emails: camp.emails, failed: camp.failed },
+    orders: {
+      count: sales.n,
+      revenue: sales.cents,
+      last: sales.last,
+      unread: shop.unreadOrders(),
+      perDay: bucket(paid),
+      revenuePerDay: keys.map((k) => paid.filter((r) => dayKey(r.t) === k).reduce((sum, r) => sum + r.total_cents, 0)),
+    },
     mail: { mode: mailer.mode },
+    payments: payments.mode,
   });
 }
 
@@ -564,28 +671,36 @@ function listSubscribers(req, res, url) {
     args.push(status);
   }
   if (q) {
-    where.push("email LIKE ? ESCAPE '\\'");
-    args.push(`%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`);
+    // the name is searched along with the address, so "nina" finds her too
+    where.push("(email LIKE ? ESCAPE '\\' OR IFNULL(name, '') LIKE ? ESCAPE '\\')");
+    const like = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+    args.push(like, like);
   }
   const w = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const total = db.prepare(`SELECT COUNT(*) AS n FROM subscribers ${w}`).get(...args).n;
   const rows = db
     .prepare(
-      `SELECT id, email, status, created_at, confirmed_at, unsubscribed_at FROM subscribers ${w} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
+      `SELECT id, email, name, phone, city, country, birthday, status, created_at, confirmed_at, unsubscribed_at
+         FROM subscribers ${w} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
     )
     .all(...args, limit, offset);
   json(res, 200, { total, rows });
 }
 
 function exportCsv(req, res) {
-  const rows = db.prepare("SELECT email, confirmed_at FROM subscribers WHERE status = 'active' ORDER BY confirmed_at").all();
+  const rows = db
+    .prepare(
+      "SELECT email, name, phone, city, country, birthday, confirmed_at FROM subscribers WHERE status = 'active' ORDER BY confirmed_at",
+    )
+    .all();
   // a leading = + - @ would make a spreadsheet run it as a formula
   const cell = (v) => {
     let s = String(v ?? '');
     if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
     return `"${s.replace(/"/g, '""')}"`;
   };
-  const body = `email,confirmed_at\r\n${rows.map((r) => [r.email, r.confirmed_at].map(cell).join(',')).join('\r\n')}\r\n`;
+  const head = ['email', 'name', 'phone', 'city', 'country', 'birthday', 'confirmed_at'];
+  const body = `${head.join(',')}\r\n${rows.map((r) => head.map((k) => cell(r[k])).join(',')).join('\r\n')}\r\n`;
   send(res, 200, body, {
     'Content-Type': 'text/csv; charset=utf-8',
     'Content-Disposition': `attachment; filename="slocabaia-members-${dayKey(Date.now())}.csv"`,
@@ -778,6 +893,9 @@ const on = (method, pattern, fn) => routes.push({ method, pattern, fn });
 on('GET', /^\/healthz$/, (req, res) => send(res, 200, 'ok', { 'Content-Type': 'text/plain' }));
 on('POST', /^\/api\/subscribe$/, subscribe);
 on('POST', /^\/api\/contact$/, contact);
+on('POST', /^\/api\/shop\/order$/, placeOrder);
+on('POST', /^\/api\/shop\/webhook$/, shopWebhook);
+on('GET', /^\/shop\/thanks$/, thanksPage);
 on('GET', /^\/api\/confirm$/, confirm);
 on('GET', /^\/u$/, unsubscribePage);
 on('POST', /^\/u$/, unsubscribe);
@@ -819,6 +937,43 @@ on('POST', /^\/api\/admin\/gallery\/order$/, admin(async (req, res) => json(res,
 on('PUT', /^\/api\/admin\/gallery\/([a-z0-9-]{1,40})$/, admin(async (req, res, url, m) => json(res, 200, site.updatePhoto(m[1], await readJson(req)))));
 on('DELETE', /^\/api\/admin\/gallery\/([a-z0-9-]{1,40})$/, admin(async (req, res, url, m) => json(res, 200, await site.deletePhoto(m[1]))));
 
+// the shop: what is for sale, and what was ordered (server/shop.js)
+on('GET', /^\/api\/admin\/shop$/, admin((req, res) =>
+  json(res, 200, {
+    settings: shop.settings(),
+    payments: payments.mode,
+    products: shop.products(),
+    orders: shop.orders(),
+    unread: shop.unreadOrders(),
+    countries: shop.countries(),
+    limits: shop.limits,
+  })));
+on('PUT', /^\/api\/admin\/shop$/, admin(async (req, res) => json(res, 200, shop.saveSettings(await readJson(req)))));
+on('POST', /^\/api\/admin\/products$/, admin(async (req, res) => json(res, 201, shop.createProduct(await readJson(req)))));
+on('POST', /^\/api\/admin\/products\/order$/, admin(async (req, res) => json(res, 200, shop.orderProducts(await readJson(req)))));
+on('PUT', /^\/api\/admin\/products\/(\d+)$/, admin(async (req, res, url, m) => json(res, 200, shop.updateProduct(m[1], await readJson(req)))));
+on('DELETE', /^\/api\/admin\/products\/(\d+)$/, admin(async (req, res, url, m) => json(res, 200, await shop.removeProduct(m[1]))));
+on('POST', /^\/api\/admin\/products\/(\d+)\/photos$/, admin(async (req, res, url, m) => json(res, 201, await shop.addPhoto(m[1], await readJson(req, 16 * MB)))));
+on('POST', /^\/api\/admin\/products\/(\d+)\/photos\/order$/, admin(async (req, res, url, m) => json(res, 200, shop.orderPhotos(m[1], await readJson(req)))));
+on('PUT', /^\/api\/admin\/products\/(\d+)\/photos\/([a-z0-9-]{1,60})$/, admin(async (req, res, url, m) => json(res, 200, shop.photoAlt(m[1], m[2], await readJson(req)))));
+on('DELETE', /^\/api\/admin\/products\/(\d+)\/photos\/([a-z0-9-]{1,60})$/, admin(async (req, res, url, m) => json(res, 200, await shop.removePhoto(m[1], m[2]))));
+on('PUT', /^\/api\/admin\/orders\/(\d+)$/, admin(async (req, res, url, m) => {
+  const body = await readJson(req);
+  return json(res, 200, 'shipped' in body ? shop.markShipped(m[1], body) : shop.markRead(m[1], body));
+}));
+on('DELETE', /^\/api\/admin\/orders\/(\d+)$/, admin(async (req, res, url, m) => json(res, 200, shop.removeOrder(m[1]))));
+
+// events and their photo sets (server/events.js)
+on('GET', /^\/api\/admin\/events$/, admin((req, res) => json(res, 200, { rows: events.all(), limits: events.limits })));
+on('POST', /^\/api\/admin\/events$/, admin(async (req, res) => json(res, 201, events.create(await readJson(req)))));
+on('POST', /^\/api\/admin\/events\/order$/, admin(async (req, res) => json(res, 200, events.orderEvents(await readJson(req)))));
+on('PUT', /^\/api\/admin\/events\/(\d+)$/, admin(async (req, res, url, m) => json(res, 200, events.update(m[1], await readJson(req)))));
+on('DELETE', /^\/api\/admin\/events\/(\d+)$/, admin(async (req, res, url, m) => json(res, 200, await events.remove(m[1]))));
+on('POST', /^\/api\/admin\/events\/(\d+)\/photos$/, admin(async (req, res, url, m) => json(res, 201, await events.addPhoto(m[1], await readJson(req, 16 * MB)))));
+on('POST', /^\/api\/admin\/events\/(\d+)\/photos\/order$/, admin(async (req, res, url, m) => json(res, 200, events.orderPhotos(m[1], await readJson(req)))));
+on('PUT', /^\/api\/admin\/events\/(\d+)\/photos\/([a-z0-9-]{1,60})$/, admin(async (req, res, url, m) => json(res, 200, events.photoAlt(m[1], m[2], await readJson(req)))));
+on('DELETE', /^\/api\/admin\/events\/(\d+)\/photos\/([a-z0-9-]{1,60})$/, admin(async (req, res, url, m) => json(res, 200, await events.removePhoto(m[1], m[2]))));
+
 const server = createServer(async (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -851,8 +1006,12 @@ const server = createServer(async (req, res) => {
     }
     // uploaded hero films and photos: unique names, so they can be cached for good
     if (path.startsWith('/media/')) {
-      const media = site.mediaFile(path.slice(7));
-      return media ? await serveFile(req, res, media, 'public, max-age=31536000, immutable') : notFound(res);
+      const file = media.file(path.slice(7));
+      if (!file) return notFound(res);
+      // ?download=name.jpg makes the browser save the photo instead of opening it
+      const wanted = url.searchParams.get('download');
+      const asFile = wanted ? { 'Content-Disposition': `attachment; filename="${safeFileName(wanted)}"` } : null;
+      return await serveFile(req, res, file, 'public, max-age=31536000, immutable', asFile);
     }
     const file = resolvePublic(path);
     if (!file) return notFound(res);

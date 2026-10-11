@@ -80,6 +80,8 @@
 }
 
 *,*::before,*::after{box-sizing:border-box}
+/* an element the script hides stays hidden, whatever display its own rule gives it */
+[hidden]{display:none!important}
 
 html{
   background:var(--void);
@@ -520,6 +522,205 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 }
 
 /* ==========================================================================
+   MEMBER FORM FIELDS, on the moss band: label over input, two per row
+   ========================================================================== */
+
+.signup__grid{
+  flex:1 1 100%;
+  display:grid;gap:10px 12px;
+  grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+}
+.mfield{display:grid;gap:6px;min-width:0}
+.mfield > span{
+  font-size:var(--t-meta);font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:rgb(242 239 232 / .74);
+}
+.mfield > span i{font-style:normal;letter-spacing:.1em;color:var(--ember-hot);opacity:.9}
+.mfield input{
+  width:100%;min-width:0;
+  padding:12px 16px;
+  border-radius:999px;
+  border:1px solid rgb(242 239 232 / .26);
+  background:rgb(5 5 5 / .32);
+  color:var(--bone);
+  font:inherit;font-size:var(--t-small);
+}
+.mfield input::placeholder{color:rgb(242 239 232 / .42)}
+.mfield input:focus{outline:2px solid var(--ember);outline-offset:2px;border-color:transparent}
+/* the date field keeps the system picker legible on a dark ground */
+.mfield input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.6}
+.signup > .pill{margin-top:4px}
+
+/* ==========================================================================
+   SHOP. Cards on the page, everything else (photos, sizes, bag, checkout)
+   happens in the one overlay that also carries the documents.
+   ========================================================================== */
+
+.shop{padding-block:clamp(56px,10vh,112px) 0}
+.shop h2{
+  font-family:var(--f-display);font-weight:900;font-stretch:118%;
+  font-size:var(--t-l);line-height:.92;letter-spacing:.02em;text-transform:uppercase;
+  color:var(--bone);margin:0 0 .3em;
+}
+.shop__lead{margin:0 0 clamp(22px,3vw,38px);color:var(--ash);font-size:var(--t-small);max-width:52ch;text-wrap:pretty}
+.shop__grid{
+  list-style:none;margin:0;padding:0;
+  display:grid;gap:var(--gutter);
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));
+}
+.piece__open{display:grid;gap:10px;width:100%;text-align:left}
+.piece__shot{
+  display:block;border-radius:4px;overflow:hidden;background:var(--char);
+  aspect-ratio:4/5;position:relative;
+}
+.piece__shot img{width:100%;height:100%;object-fit:cover;transition:transform .7s var(--ease-out),opacity .4s}
+.piece__open:hover .piece__shot img{transform:scale(1.03)}
+.piece__line{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.piece__name{
+  font-family:var(--f-text);font-size:var(--t-small);font-weight:700;font-stretch:84%;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--bone);
+}
+.piece__price{font-size:var(--t-small);color:var(--ember);white-space:nowrap}
+.piece__tag{display:block;font-size:var(--t-meta);letter-spacing:.04em;color:var(--ash);margin-top:-4px}
+.piece.is-sold .piece__shot img{opacity:.42}
+.piece.is-sold .piece__price{color:var(--ash)}
+
+/* the bag button in the top bar: only there once something is in it */
+.bag__btn{
+  position:relative;display:inline-flex;align-items:center;gap:7px;
+  padding:8px 14px 8px 11px;border-radius:999px;
+  border:1px solid var(--line);color:var(--bone);
+  transition:background .3s,color .3s,border-color .3s;
+}
+.bag__btn:hover{background:var(--ember);color:var(--void);border-color:transparent}
+.bag__ico svg{width:17px;height:17px;display:block;fill:none;stroke:currentColor;stroke-width:1.3;stroke-linejoin:round}
+.bag__n{font-size:var(--t-meta);font-weight:700;letter-spacing:.1em;font-variant-numeric:tabular-nums}
+
+/* ---------------------------------------------- inside the overlay: a piece */
+.pan{display:grid;gap:18px}
+.pan__shots{
+  list-style:none;margin:0;padding:0 0 6px;
+  display:flex;gap:10px;overflow-x:auto;overscroll-behavior-x:contain;
+  scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:var(--ash-2) transparent;
+}
+.pan__shots li{flex:0 0 auto;width:min(68%,260px);scroll-snap-align:start}
+.pan__shots img{width:100%;height:auto;border-radius:4px;background:var(--char)}
+.pan__price{
+  font-family:var(--f-display);font-weight:900;font-stretch:112%;
+  font-size:clamp(22px,3vw,34px);letter-spacing:.02em;color:var(--ember);margin:0;
+}
+.pan__tag{margin:-10px 0 0;font-size:var(--t-small);color:var(--ash)}
+.pan__text{margin:0;font-size:var(--t-small);line-height:1.68;color:var(--bone-2);white-space:pre-line}
+.pan__label{
+  display:block;font-size:var(--t-meta);font-weight:700;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--ember);margin:0 0 8px;
+}
+.sizes{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.size{
+  padding:10px 16px;border-radius:999px;border:1px solid var(--line);
+  font-size:var(--t-small);letter-spacing:.1em;text-transform:uppercase;color:var(--bone-2);
+  transition:background .25s,color .25s,border-color .25s;
+}
+.size:hover:not(:disabled){border-color:var(--bone-2);color:var(--bone)}
+.size[aria-pressed=true]{background:var(--ember);border-color:transparent;color:var(--void);font-weight:700}
+.size:disabled{opacity:.36;cursor:not-allowed;text-decoration:line-through}
+.size small{display:block;font-size:10px;letter-spacing:.08em;opacity:.7;text-transform:none}
+.pan__act{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.pan__note{margin:0;font-size:var(--t-meta);color:var(--ash);flex:1 1 100%}
+.pan__err{margin:0;font-size:var(--t-small);color:var(--ember-hot);min-height:1.2em}
+
+/* ------------------------------------------------- inside the overlay: bag */
+.bagl{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:12px}
+.bagl li{
+  display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;
+  padding-bottom:12px;border-bottom:1px solid var(--line-soft);
+}
+.bagl img{width:56px;height:70px;object-fit:cover;border-radius:3px;background:var(--char)}
+.bagl__name{display:block;font-size:var(--t-small);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--bone)}
+.bagl__meta{display:block;font-size:var(--t-meta);color:var(--ash)}
+.bagl__right{display:grid;gap:6px;justify-items:end}
+.bagl__price{font-size:var(--t-small);color:var(--bone);font-variant-numeric:tabular-nums}
+.qty{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:999px}
+.qty button{width:28px;height:28px;display:grid;place-items:center;color:var(--bone-2);border-radius:50%}
+.qty button:hover{color:var(--ember)}
+.qty span{min-width:18px;text-align:center;font-size:var(--t-small);font-variant-numeric:tabular-nums}
+.drop{font-size:var(--t-meta);letter-spacing:.14em;text-transform:uppercase;color:var(--ash);text-decoration:underline;text-underline-offset:3px}
+.drop:hover{color:var(--ember-hot)}
+.sum{display:grid;gap:7px;margin:0 0 18px}
+.sum div{display:flex;justify-content:space-between;gap:16px;font-size:var(--t-small);color:var(--bone-2)}
+.sum div.is-total{
+  padding-top:9px;border-top:1px solid var(--line);
+  color:var(--bone);font-weight:700;font-size:var(--t-body);
+}
+.sum b{font-variant-numeric:tabular-nums;font-weight:inherit}
+
+/* --------------------------------------------- inside the overlay: checkout */
+.co{display:grid;gap:12px}
+.co__row{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.co__row--two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.cfield select{
+  width:100%;padding:13px 16px;border-radius:14px;
+  border:1px solid var(--line);background:var(--char);color:var(--bone);
+  font:inherit;font-size:var(--t-small);
+}
+.cfield select:focus{outline:2px solid var(--ember);outline-offset:2px;border-color:transparent}
+.co__ship{
+  display:flex;align-items:center;gap:10px;padding:12px 14px;
+  border:1px solid var(--line);border-radius:14px;font-size:var(--t-small);color:var(--bone-2);
+}
+.co__ship input{accent-color:var(--ember);width:17px;height:17px;flex:0 0 auto}
+.terms{display:flex;gap:10px;align-items:flex-start;font-size:var(--t-meta);color:var(--ash);line-height:1.6}
+.terms input{accent-color:var(--ember);width:17px;height:17px;margin-top:2px;flex:0 0 auto}
+.terms a,.terms button{color:var(--ember);text-decoration:underline;text-underline-offset:3px}
+.co__pay{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:4px}
+.co__safe{margin:0;font-size:var(--t-meta);color:var(--ash)}
+
+/* ==========================================================================
+   EVENTS, photo sets of nights we hosted; every photo downloads full size
+   ========================================================================== */
+
+.events{padding-block:clamp(56px,10vh,112px) 0}
+.events h2{
+  font-family:var(--f-display);font-weight:900;font-stretch:118%;
+  font-size:var(--t-l);line-height:.92;letter-spacing:.02em;text-transform:uppercase;
+  color:var(--bone);margin:0 0 .3em;
+}
+.events__lead{margin:0 0 clamp(22px,3vw,38px);color:var(--ash);font-size:var(--t-small);max-width:52ch;text-wrap:pretty}
+.shots{margin:0 0 clamp(34px,5vw,60px)}
+.shots__head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;margin-bottom:4px}
+.shots__head h3{
+  font-family:var(--f-text);font-size:var(--t-body);font-weight:700;font-stretch:84%;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--bone);margin:0;
+}
+.shots__when{margin:0;font-size:var(--t-meta);letter-spacing:.16em;text-transform:uppercase;color:var(--ember)}
+.shots__text{margin:8px 0 0;font-size:var(--t-small);color:var(--bone-2);max-width:62ch;text-wrap:pretty}
+.shots__grid{
+  list-style:none;margin:16px 0 0;padding:0;
+  display:grid;gap:10px;
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));
+}
+.shots__item{position:relative;border-radius:4px;overflow:hidden;background:var(--char)}
+.shots__open{display:block;aspect-ratio:1/1}
+.shots__open img{width:100%;height:100%;object-fit:cover;transition:transform .7s var(--ease-out)}
+.shots__item:hover .shots__open img{transform:scale(1.04)}
+.shots__get{
+  position:absolute;right:8px;bottom:8px;
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 12px;border-radius:999px;
+  background:rgb(5 5 5 / .72);border:1px solid rgb(242 239 232 / .22);
+  color:var(--bone);font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  backdrop-filter:blur(6px);
+  transition:background .25s,color .25s,border-color .25s;
+}
+.shots__get:hover{background:var(--ember);color:var(--void);border-color:transparent}
+.shots__get svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+/* a touch screen has no hover, so the button simply stays visible there */
+@media (hover:hover){
+  .shots__get{opacity:0;transform:translateY(4px);transition:opacity .25s,transform .25s,background .25s,color .25s}
+  .shots__item:hover .shots__get,.shots__get:focus-visible{opacity:1;transform:none}
+}
+
+/* ==========================================================================
    CONTACT, the messages land in the dashboard and on the team's phones
    ========================================================================== */
 
@@ -746,6 +947,14 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
     <a class="nav__mark" href="#top">Slocabaia</a>
     <nav class="nav__links" aria-label="Primary">
       <a href="#about">About</a>
+      <a href="#shop" class="nav__jump" data-needs="shop" hidden>Shop</a>
+      <a href="#events" class="nav__jump" data-needs="events" hidden>Events</a>
+      <button class="bag__btn" id="bagbtn" type="button" hidden aria-label="Open your bag">
+        <span class="bag__ico" aria-hidden="true">
+          <svg viewBox="0 0 18 18"><path d="M3.6 5.9h10.8l-.9 9H4.5l-.9-9Z"/><path d="M6.6 5.9V4.4a2.4 2.4 0 0 1 4.8 0v1.5"/></svg>
+        </span>
+        <span class="bag__n" id="bagn">0</span>
+      </button>
       <a href="#member" class="pill">
         <span class="pill__long">Become a member</span><span class="pill__short">Member</span>
         <span class="pill__dot" aria-hidden="true">
@@ -824,7 +1033,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
         <h2 id="member-h" data-r="up">Become<br>a member</h2>
         <p data-r="text" style="--d:120ms">
           Get the latest drops, events, collaborations and creative opportunities delivered straight
-          to your inbox.
+          to your inbox. Tell us who you are, so we know who we are talking to.
         </p>
 
       </div>
@@ -834,9 +1043,21 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
           <div class="signup__row">
             <!-- left empty by people, filled in by bots -->
             <div class="hp" aria-hidden="true"><label>Company <input id="company" name="company" tabindex="-1" autocomplete="off"></label></div>
-            <label class="skip" for="email">Email address</label>
-            <input id="email" name="email" type="email" inputmode="email" autocomplete="email"
-                   placeholder="you@email.com" required>
+            <div class="signup__grid">
+              <label class="mfield"><span>Name <i>required</i></span>
+                <input id="mname" name="name" autocomplete="name" maxlength="120" placeholder="Your full name" required></label>
+              <label class="mfield"><span>Email <i>required</i></span>
+                <input id="email" name="email" type="email" inputmode="email" autocomplete="email"
+                       maxlength="254" placeholder="you@email.com" required></label>
+              <label class="mfield"><span>Phone</span>
+                <input id="mphone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="40" placeholder="+31 6 ..."></label>
+              <label class="mfield"><span>City</span>
+                <input id="mcity" name="city" autocomplete="address-level2" maxlength="80" placeholder="Amsterdam"></label>
+              <label class="mfield"><span>Country</span>
+                <input id="mcountry" name="country" autocomplete="country-name" maxlength="60" placeholder="Netherlands"></label>
+              <label class="mfield"><span>Birthday</span>
+                <input id="mbirthday" name="birthday" type="date" autocomplete="bday" placeholder="YYYY-MM-DD"></label>
+            </div>
             <button class="pill" type="submit">
               Sign up
               <span class="pill__dot" aria-hidden="true">
@@ -845,7 +1066,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
             </button>
           </div>
           <p class="signup__note">
-            No spam. Leave whenever you want. Read the
+            Only your name and email are required. No spam, leave whenever you want. Read the
             <button type="button" class="as-link" data-sheet="privacy">privacy policy</button>.
           </p>
           <p class="signup__ok" role="status"></p>
@@ -860,6 +1081,20 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
        ====================================================================== -->
   <!-- gallery:start -->
   <!-- gallery:end -->
+
+  <!-- ======================================================================
+       SHOP. The server writes the live products between the shop markers
+       (server/shop.js); with nothing for sale there is no section at all.
+       ====================================================================== -->
+  <!-- shop:start -->
+  <!-- shop:end -->
+
+  <!-- ======================================================================
+       EVENTS. Photo sets of nights we hosted, every photo downloadable
+       (server/events.js); with no live event there is no section.
+       ====================================================================== -->
+  <!-- events:start -->
+  <!-- events:end -->
 
   <!-- ======================================================================
        CONTACT. Saved for the dashboard, which pings the team's phones.
@@ -919,6 +1154,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 <footer class="wrap foot">
   <div class="foot__inner">
     <button type="button" data-sheet="terms">Terms &amp; conditions</button>
+    <button type="button" data-sheet="sale">Terms of sale</button>
+    <button type="button" data-sheet="shipping">Shipping</button>
+    <button type="button" data-sheet="returns">Returns</button>
     <button type="button" data-sheet="privacy">Privacy policy</button>
     <button type="button" data-sheet="faq">FAQ</button>
     <button type="button" data-sheet="cookies">Cookie settings</button>
@@ -1266,13 +1504,19 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 
         <h3>What we collect</h3>
         <ul>
-          <li><strong>Your email address</strong>, but only if you type it into the member form yourself.</li>
+          <li><strong>What you type into the member form</strong>: your name and email address, and, only
+          if you fill them in, your phone number, city, country and birthday. Name and email are needed to
+          send you the newsletter; the rest you give us voluntarily so we know who we are talking to.</li>
           <li><strong>Technical data</strong> that every web server receives: your IP address, browser
           type and the pages you opened. This is needed to serve the site and to keep it secure.</li>
           <li><strong>A visit count</strong>: the server adds one to a daily total when the page is opened.
           No cookie is set and no IP address or other identifier is stored with it.</li>
           <li><strong>Analytics data</strong>, and only if you accepted analytics cookies. See the
           cookie policy for the detail.</li>
+          <li><strong>Order details</strong>, if you buy something: your name, email, phone number,
+          delivery address, what you ordered, what you paid and any note you added. Your payment itself
+          happens at Mollie; we never see your card or bank login, only whether the payment succeeded
+          and which method was used.</li>
         </ul>
         <p>We do not ask for, and do not want, any special category data. Do not send us health data,
         identity document numbers or payment card numbers by email.</p>
@@ -1285,17 +1529,24 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
           that works and is not abused.</li>
           <li><strong>Understanding what people look at.</strong> Basis: your consent, through the
           cookie banner.</li>
+          <li><strong>Handling your order</strong>: taking the payment, shipping the pieces, answering
+          questions about it and keeping the invoice. Basis: performing our contract with you, and our
+          legal duty to keep records of what we sold.</li>
         </ul>
 
         <h3>Who else sees it</h3>
         <p>Only the suppliers we need to run this: our hosting provider
-        (<span class="todo">FILL IN: hosting provider</span>) and Resend, which delivers our emails. They act on our instructions under a
+        (<span class="todo">FILL IN: hosting provider</span>) and Resend, which delivers our emails. If you
+        order something, Mollie handles the payment as its own controller under its own privacy statement,
+        and the carrier (<span class="todo">FILL IN: carrier</span>) receives the address needed to
+        deliver your parcel. They act on our instructions under a
         processing agreement. We do not sell your data and we do not trade it.
         <span class="todo">FILL IN: name any transfer outside the EEA and the safeguard used</span></p>
 
         <h3>How long we keep it</h3>
-        <p>Your email address stays on the list until you unsubscribe, and is removed within 30 days
-        after that. Server logs are kept for <span class="todo">FILL IN: number</span> months.
+        <p>Your member details stay on the list until you unsubscribe, and are removed within 30 days
+        after that. Order details are kept for seven years, because Dutch tax law requires us to keep
+        our books that long. Server logs are kept for <span class="todo">FILL IN: number</span> months.
         Analytics data is kept for <span class="todo">FILL IN: number</span> months.</p>
 
         <h3>Your rights</h3>
@@ -1346,8 +1597,17 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
         By using the site you accept these terms.</p>
 
         <h3>What this site is</h3>
-        <p>An introduction to The House of Slocabaia and a way to become a member of our mailing list.
-        Nothing is sold on this site.</p>
+        <p>An introduction to The House of Slocabaia, a way to become a member of our mailing list, a
+        place to look back at our events, and a shop. What you buy here is covered by the
+        <button type="button" class="as-link" data-sheet="sale">terms of sale</button>, the
+        <button type="button" class="as-link" data-sheet="shipping">shipping terms</button> and your
+        <button type="button" class="as-link" data-sheet="returns">right to return</button>.</p>
+
+        <h3>Event photos</h3>
+        <p>The photos on the events page are ours to share and yours to download for your own use: print
+        them, keep them, post them. Please credit The House of Slocabaia when you post one. Selling them,
+        or using them in an advertisement or any other commercial way, needs our written permission. If
+        you are in a photo and would rather not be, email ${MAIL} and we take it down.</p>
 
         <h3>Our work</h3>
         <p>The film, photographs, logos, the SB crest and the texts on this site belong to Slocabaia or to
@@ -1373,12 +1633,124 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
       `
     },
 
+    sale: {
+      title: 'Terms of sale',
+      html: `
+        <p>These terms apply to everything you buy in the shop on this site. The seller is ${ENTITY},
+        registered at ${ADDR}, KvK ${KVK}, reachable at ${MAIL}.</p>
+
+        <h3>Prices</h3>
+        <p>Every price on the site includes 21% Dutch VAT. Shipping is shown separately in your bag
+        before you pay, and the total you see there is the total you are charged. If a price is
+        obviously wrong, we may cancel the order and refund you in full instead of delivering.</p>
+
+        <h3>Your order</h3>
+        <p>An order is a request to buy. The agreement exists once your payment succeeds and we send you
+        the confirmation email with your order number. If a piece turns out to be unavailable after all,
+        we tell you and refund that piece in full within 14 days.</p>
+
+        <h3>Paying</h3>
+        <p>You pay straight away, through Mollie, with iDEAL or another method Mollie offers you. We
+        never see your bank login or card number. Nothing is shipped before the money has arrived.</p>
+
+        <h3>Our pieces</h3>
+        <p>Most of what we sell is made in small runs, often by hand. Small differences in colour,
+        print placement and finish belong to the work and are not faults. Measurements are given as a
+        guide; ask us before you order if a fit matters.</p>
+
+        <h3>If something is wrong</h3>
+        <p>You are entitled to goods that match what we described. If a piece arrives damaged or is not
+        what you ordered, email ${MAIL} within a reasonable time with your order number and a photo and
+        we repair it, replace it or refund it. This is on top of your
+        <button type="button" class="as-link" data-sheet="returns">right to return</button>, and nothing
+        in these terms limits your rights under Dutch consumer law.</p>
+
+        <h3>Applicable law</h3>
+        <p>Dutch law applies. If you are a consumer you keep the right to bring a dispute before the
+        court where you live.</p>
+      `
+    },
+
+    shipping: {
+      title: 'Shipping and delivery',
+      html: `
+        <h3>What it costs</h3>
+        <p>Shipping is worked out in your bag, by the country you pick, before you pay. The current
+        rates are <span class="todo">FILL IN: rate per zone, or let the dashboard values speak</span>
+        and they are set in our dashboard, so the amount in your bag is always the current one.</p>
+
+        <h3>When it goes out</h3>
+        <p>We pack and post within <span class="todo">FILL IN: number</span> working days of your
+        payment. You get an email with your tracking code as soon as the parcel is on its way.
+        Delivery after that is up to the carrier: usually one to two working days inside the
+        Netherlands and two to five in the rest of Europe. The law gives us 30 days at most; if we
+        cannot make that we tell you and you may cancel for a full refund.</p>
+
+        <h3>Where it goes</h3>
+        <p>We ship to the countries listed in the bag. If yours is not there, email ${MAIL} and we will
+        see what is possible.</p>
+
+        <h3>Picking it up</h3>
+        <p>When pickup is offered in the bag you can collect your order yourself instead of paying for
+        shipping. We email you the address and the hours once your payment is in.</p>
+
+        <h3>If a parcel does not arrive</h3>
+        <p>Until a parcel reaches you it is our risk, not yours. Email ${MAIL} with your order number
+        and we chase the carrier, resend the order or refund it.</p>
+      `
+    },
+
+    returns: {
+      title: 'Right to return',
+      html: `
+        <p>If you buy as a consumer you have a legal right to change your mind. This is the Dutch and
+        European right of withdrawal, and it costs you nothing to use.</p>
+
+        <h3>You have 14 days</h3>
+        <p>You may cancel your order for any reason within 14 days of the day you received it, without
+        giving a reason. Email ${MAIL} with your order number and say that you are withdrawing, or use
+        the EU model withdrawal form. We confirm the moment we receive it.</p>
+
+        <h3>Sending it back</h3>
+        <p>After telling us, you have another 14 days to send the pieces back to
+        <span class="todo">FILL IN: return address</span>. Send them in a condition we can sell them in:
+        unworn, unwashed, with the tags still on, in the original packaging where you can. You pay the
+        cost of the return shipment; keep the proof of posting until your refund is in.</p>
+
+        <h3>Your money back</h3>
+        <p>We refund everything you paid, including the original shipping cost, within 14 days of
+        receiving the return, or of your proof that you sent it, whichever is earlier. The refund goes
+        back the same way you paid. If you chose a delivery method more expensive than our standard one,
+        we refund our standard rate for it. You are liable only for a drop in value caused by handling
+        the piece more than you would in a shop.</p>
+
+        <h3>What cannot come back</h3>
+        <p>Pieces made or personalised to your order, and anything sealed for hygiene that you have
+        opened, are excluded by law. We say so on the piece itself before you buy. Gift cards and
+        digital downloads are excluded once used.</p>
+      `
+    },
+
     faq: {
       title: 'Frequently asked',
       html: `
         <h3>When is the next drop?</h3>
         <p>Drops are announced to the mailing list first, then on Instagram. Sign up higher on this
         page and you hear it before anyone else.</p>
+
+        <h3>How do I order, and how do I pay?</h3>
+        <p>Tap a piece in the shop, pick your size, add it to your bag and fill in your address. You pay
+        with iDEAL through Mollie, and you get a confirmation email with your order number the moment the
+        payment lands. The <button type="button" class="as-link" data-sheet="shipping">shipping terms</button>
+        say what it costs and how fast it goes out.</p>
+
+        <h3>Can I send something back?</h3>
+        <p>Yes, within 14 days of receiving it, no reason needed. Read your
+        <button type="button" class="as-link" data-sheet="returns">right to return</button> for how.</p>
+
+        <h3>Can I download the photos of an event?</h3>
+        <p>Yes. Open the events section, tap Download on any photo and you get the full size file. If you
+        are in one and would rather not be, email ${MAIL} and it comes down.</p>
 
         <h3>Do you make custom pieces?</h3>
         <p>Yes. Hand painted denim and one off pieces are made to order. Email ${MAIL} with what you
@@ -1406,23 +1778,31 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
      over the bottom of the screen) steps aside until the document closes */
   const behind = () => [$('#nav'), $('#main'), $('footer.foot')].filter(Boolean);
   let bannerWasOpen = false;
-  const openSheet = (key) => {
-    const doc = DOCS[key];
-    if (!doc) return;
-    lastFocus = document.activeElement;
-    sheetTitle.textContent = doc.title;
-    sheetBody.innerHTML = doc.html;
-    const bn = $('#cookie');
-    bannerWasOpen = bannerWasOpen || !!(bn && bn.classList.contains('is-open'));
-    if (bn) bn.classList.remove('is-open');
-    behind().forEach((el) => { el.inert = true; });
-    sheet.hidden = false;
-    sheet.classList.add('is-open');
-    document.body.style.overflow = 'hidden';
+  /* the shop walks through several screens in this same overlay, so opening it again
+     while it is already open only swaps the contents */
+  const showSheet = (title, html) => {
+    const already = !sheet.hidden;
+    if (!already) lastFocus = document.activeElement;
+    sheetTitle.textContent = title;
+    sheetBody.innerHTML = html;
+    if (!already) {
+      const bn = $('#cookie');
+      bannerWasOpen = bannerWasOpen || !!(bn && bn.classList.contains('is-open'));
+      if (bn) bn.classList.remove('is-open');
+      behind().forEach((el) => { el.inert = true; });
+      sheet.hidden = false;
+      sheet.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
     sheetBody.scrollTop = 0;
     sheetBody.focus();
     const reset = $('#ck-reset');
     if (reset) reset.addEventListener('click', () => { closeSheet(); askCookies(); });
+  };
+
+  const openSheet = (key) => {
+    const doc = DOCS[key];
+    if (doc) showSheet(doc.title, doc.html);
   };
 
   const closeSheet = () => {
@@ -1543,14 +1923,24 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
     };
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const name = $('#mname');
       const input = $('#email');
-      if (!input.value || !input.checkValidity()) { input.focus(); return; }
+      if (!name.value.trim()) { say('Tell us your name.', 'error'); name.focus(); return; }
+      if (!input.value || !input.checkValidity()) { say('That email address does not look right.', 'error'); input.focus(); return; }
       btn.disabled = true;
       try {
         const res = await fetch(ACTION, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify({ email: input.value, company: $('#company', form).value })
+          body: JSON.stringify({
+            email: input.value,
+            name: name.value,
+            phone: $('#mphone', form).value,
+            city: $('#mcity', form).value,
+            country: $('#mcountry', form).value,
+            birthday: $('#mbirthday', form).value,
+            company: $('#company', form).value,
+          })
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || '');
@@ -1567,6 +1957,267 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
     else if (state === 'invalid') say('That link is no longer valid. Sign up again and we send a fresh one.', 'error');
     if (state) history.replaceState(null, '', location.pathname + location.hash);
   }
+
+  /* ------------------------------------------------------------------
+     12. SHOP
+     The products are written into the page by the server (server/shop.js).
+     The bag lives in this tab only, and the overlay walks from a piece to the
+     bag to the address. The server works out every price again before it asks
+     for money, so nothing here can change what an order costs.
+     ------------------------------------------------------------------ */
+  const SHOP = (() => {
+    const tag = $('#shop-data');
+    if (!tag) return null;
+    try { return JSON.parse(tag.textContent || 'null'); } catch { return null; }
+  })();
+
+  if (SHOP) {
+    const BAGKEY = 'sloca_bag';
+    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const money = (c) => ((Number(c) || 0) / 100).toLocaleString('nl-NL', { style: 'currency', currency: 'EUR' });
+    const pieceOf = (id) => SHOP.products.find((p) => String(p.id) === String(id));
+    const sizeOf = (p, key) => (p ? p.variants.find((v) => v.key === key) : null);
+    const bagBtn = $('#bagbtn');
+    const bagN = $('#bagn');
+
+    const readBag = () => {
+      try { const v = JSON.parse(sessionStorage.getItem(BAGKEY) || '[]'); return Array.isArray(v) ? v : []; }
+      catch { return []; }
+    };
+    const writeBag = (b) => {
+      try { sessionStorage.setItem(BAGKEY, JSON.stringify(b)); } catch { /* private mode: the bag lasts this screen */ }
+      paintBag();
+    };
+    /* a line survives only while its piece and its size are still for sale */
+    const lines = () => readBag().map((l) => {
+      const p = pieceOf(l.id);
+      const v = sizeOf(p, l.variant);
+      if (!p || !v || p.soldout) return null;
+      const qty = Math.max(1, Math.min(Number(v.stock) || 0, Number(l.qty) || 1));
+      return qty ? { p, v, qty, cents: p.price * qty } : null;
+    }).filter(Boolean);
+
+    const count = () => lines().reduce((n, l) => n + l.qty, 0);
+    function paintBag() {
+      const n = count();
+      if (bagBtn) {
+        bagBtn.hidden = n === 0;
+        bagN.textContent = String(n);
+        bagBtn.setAttribute('aria-label', n === 1 ? 'Open your bag, 1 piece' : `Open your bag, ${n} pieces`);
+      }
+    }
+
+    /* the same zones the server uses, so the total on screen matches the bill */
+    const shipFor = (country, subtotal, pickup) => {
+      if (pickup && SHOP.pickup && SHOP.pickup.enabled) return { cents: SHOP.pickup.cents, label: SHOP.pickup.label };
+      const zone = (SHOP.zones || []).find((z) => (z.countries || []).includes(String(country).toUpperCase()));
+      if (!zone) return null;
+      if (SHOP.freeFrom && subtotal >= SHOP.freeFrom) return { cents: 0, label: `${zone.label}, free over ${money(SHOP.freeFrom)}` };
+      return { cents: zone.cents, label: zone.label };
+    };
+
+    const arrow = '<span class="pill__dot" aria-hidden="true"><svg viewBox="0 0 12 12"><path d="M1.5 6h9M7 2.5 10.5 6 7 9.5"/></svg></span>';
+
+    /* ------------------------------------------------------------ a piece */
+    let pick = null; // { id, variant, qty } while a piece is open
+
+    function piecePanel(id) {
+      const p = pieceOf(id);
+      if (!p) return;
+      const keep = pick && String(pick.id) === String(p.id) ? pick.variant : null;
+      const first = p.variants.find((v) => v.stock > 0);
+      pick = { id: p.id, variant: keep || (first ? first.key : null), qty: 1 };
+      const shots = p.images.map((img, i) => {
+        const src = img.thumb || img.src;
+        const set = img.thumb ? ` srcset="${esc(img.thumb)} ${Math.trunc(img.tw) || 800}w, ${esc(img.src)} ${Math.trunc(img.w) || 1200}w" sizes="260px"` : '';
+        return `<li><img src="${esc(src)}"${set} alt="${esc(img.alt || p.name)} ${i + 1}" loading="lazy" decoding="async"></li>`;
+      }).join('');
+      const sizes = p.variants.map((v) => {
+        const out = v.stock <= 0;
+        const low = !out && v.stock <= 2 ? `<small>${v.stock} left</small>` : '';
+        return `<li><button class="size" type="button" data-act="size" data-key="${esc(v.key)}"
+          aria-pressed="${pick.variant === v.key}"${out ? ' disabled' : ''}>${esc(v.label)}${low}</button></li>`;
+      }).join('');
+      const buy = SHOP.open && !p.soldout;
+      showSheet(p.name, `
+        <div class="pan">
+          ${p.images.length ? `<ul class="pan__shots" role="list">${shots}</ul>` : ''}
+          <p class="pan__price">${p.soldout ? 'Sold out' : esc(p.priceText)}</p>
+          ${p.tagline ? `<p class="pan__tag">${esc(p.tagline)}</p>` : ''}
+          ${p.body ? `<p class="pan__text">${esc(p.body)}</p>` : ''}
+          ${p.variants.length ? `<div><span class="pan__label">Size</span><ul class="sizes" role="list">${sizes}</ul></div>` : ''}
+          ${buy ? `<div class="pan__act">
+            <button class="pill" type="button" data-act="add">Add to bag${arrow}</button>
+            ${count() ? '<button class="drop" type="button" data-act="bag">View bag</button>' : ''}
+            <p class="pan__note">${esc(SHOP.vatNote)} ${esc(SHOP.leadTime)}</p>
+          </div>` : `<p class="pan__note">${p.soldout ? 'This piece is gone. New drops go out to members first.' : 'The shop is not taking orders right now. Send us a message and we will let you know.'}</p>`}
+          <p class="pan__err" role="status"></p>
+        </div>`);
+    }
+
+    /* --------------------------------------------------- the bag + address */
+    function bagPanel() {
+      const ls = lines();
+      if (!ls.length) {
+        showSheet('Your bag', '<div class="pan"><p class="pan__text">Your bag is empty.</p><div class="pan__act"><button class="pill" type="button" data-close>Back to the shop' + arrow + '</button></div></div>');
+        return;
+      }
+      const subtotal = ls.reduce((n, l) => n + l.cents, 0);
+      const rows = ls.map((l) => {
+        const img = l.p.images[0];
+        return `<li>
+          ${img ? `<img src="${esc(img.thumb || img.src)}" alt="" loading="lazy">` : '<span></span>'}
+          <span>
+            <span class="bagl__name">${esc(l.p.name)}</span>
+            <span class="bagl__meta">Size ${esc(l.v.label)} &middot; ${esc(l.p.priceText)}</span>
+          </span>
+          <span class="bagl__right">
+            <span class="bagl__price">${money(l.cents)}</span>
+            <span class="qty">
+              <button type="button" data-act="less" data-id="${l.p.id}" data-key="${esc(l.v.key)}" aria-label="One less ${esc(l.p.name)}">&minus;</button>
+              <span>${l.qty}</span>
+              <button type="button" data-act="more" data-id="${l.p.id}" data-key="${esc(l.v.key)}" aria-label="One more ${esc(l.p.name)}"${l.qty >= l.v.stock ? ' disabled' : ''}>+</button>
+            </span>
+            <button class="drop" type="button" data-act="drop" data-id="${l.p.id}" data-key="${esc(l.v.key)}">Remove</button>
+          </span>
+        </li>`;
+      }).join('');
+      const countries = (SHOP.countries || []).map((c) => `<option value="${esc(c.code)}"${c.code === 'NL' ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
+      const pickup = SHOP.pickup && SHOP.pickup.enabled
+        ? `<label class="co__ship"><input type="checkbox" name="pickup"><span>${esc(SHOP.pickup.label)} &middot; ${SHOP.pickup.cents ? money(SHOP.pickup.cents) : 'free'}</span></label>`
+        : '';
+      showSheet('Your bag', `
+        <ul class="bagl" role="list">${rows}</ul>
+        <div class="sum" id="sum"></div>
+        <form class="co" id="co" novalidate>
+          <div class="co__row co__row--two">
+            <label class="cfield"><span>Name</span><input name="name" autocomplete="name" maxlength="120" required></label>
+            <label class="cfield"><span>Email</span><input name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" required></label>
+          </div>
+          <div class="co__row co__row--two">
+            <label class="cfield"><span>Phone</span><input name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="40"></label>
+            <label class="cfield"><span>Country</span><select name="country" autocomplete="country">${countries}</select></label>
+          </div>
+          ${pickup}
+          <label class="cfield"><span>Street and number</span><input name="street" autocomplete="street-address" maxlength="120" required></label>
+          <div class="co__row co__row--two">
+            <label class="cfield"><span>Postcode</span><input name="postcode" autocomplete="postal-code" maxlength="20" required></label>
+            <label class="cfield"><span>City</span><input name="city" autocomplete="address-level2" maxlength="80" required></label>
+          </div>
+          <label class="cfield"><span>Note for us (optional)</span><textarea name="note" rows="2" maxlength="500"></textarea></label>
+          <label class="terms">
+            <input type="checkbox" name="terms" required>
+            <span>I have read the <button type="button" class="as-link" data-sheet="sale">terms of sale</button>,
+            the <button type="button" class="as-link" data-sheet="shipping">shipping terms</button> and the
+            <button type="button" class="as-link" data-sheet="returns">right to return</button>, and I agree the
+            order is paid for now.</span>
+          </label>
+          <div class="co__pay">
+            <button class="pill" type="submit">Pay with iDEAL${arrow}</button>
+            <p class="co__safe">You pay at Mollie. We never see your bank details.</p>
+          </div>
+          <p class="pan__err" role="status"></p>
+        </form>`);
+      const form = $('#co', sheetBody);
+      const paintSum = () => {
+        const pickedUp = form.elements.pickup ? form.elements.pickup.checked : false;
+        const ship = shipFor(form.elements.country.value, subtotal, pickedUp);
+        const addr = $$('input[name=street],input[name=postcode],input[name=city]', form);
+        addr.forEach((el) => { el.closest('.cfield').style.display = pickedUp ? 'none' : ''; el.required = !pickedUp; });
+        $('#sum', sheetBody).innerHTML =
+          `<div><span>Subtotal</span><b>${money(subtotal)}</b></div>` +
+          `<div><span>${ship ? esc(ship.label) : 'Shipping'}</span><b>${ship ? (ship.cents ? money(ship.cents) : 'Free') : 'Not available'}</b></div>` +
+          `<div class="is-total"><span>Total</span><b>${ship ? money(subtotal + ship.cents) : '&mdash;'}</b></div>`;
+      };
+      form.addEventListener('change', paintSum);
+      paintSum();
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const f = form.elements;
+        const out = $('.pan__err', form);
+        const tell = (m) => { out.textContent = m; };
+        if (!f.terms.checked) { tell('Please agree to the terms before paying.'); f.terms.focus(); return; }
+        const pickedUp = f.pickup ? f.pickup.checked : false;
+        if (!f.name.value.trim()) { tell('Tell us your name.'); f.name.focus(); return; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.value.trim())) { tell('That email address does not look right.'); f.email.focus(); return; }
+        if (!pickedUp && (!f.street.value.trim() || !f.postcode.value.trim() || !f.city.value.trim())) { tell('Fill in your full address.'); f.street.focus(); return; }
+        const btn = $('button[type=submit]', form);
+        btn.disabled = true;
+        tell('One moment, we are opening your payment.');
+        try {
+          const res = await fetch('/api/shop/order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({
+              name: f.name.value, email: f.email.value, phone: f.phone.value,
+              street: f.street.value, postcode: f.postcode.value, city: f.city.value,
+              country: f.country.value, pickup: pickedUp, note: f.note.value,
+              items: lines().map((l) => ({ product_id: l.p.id, variant: l.v.key, qty: l.qty })),
+            }),
+          });
+          const d = await res.json().catch(() => ({}));
+          if (!res.ok || !d.checkoutUrl) throw new Error(d.error || 'That did not go through. Try again in a moment.');
+          /* the order is saved, so the bag is done; the bank screen comes next */
+          try { sessionStorage.removeItem(BAGKEY); } catch { /* nothing to clear */ }
+          location.href = d.checkoutUrl;
+        } catch (err) {
+          tell(err.message || 'That did not go through. Try again in a moment.');
+          btn.disabled = false;
+        }
+      });
+    }
+
+    /* ------------------------------------------------------------- clicks */
+    document.addEventListener('click', (e) => {
+      /* a sold-out piece opens too: the photos and the story stay readable */
+      const open = e.target.closest('[data-piece]');
+      if (open) { piecePanel(open.dataset.piece); return; }
+      if (e.target.closest('#bagbtn')) bagPanel();
+    });
+
+    sheetBody.addEventListener('click', (e) => {
+      const el = e.target.closest('[data-act]');
+      if (!el) return;
+      const act = el.dataset.act;
+      if (act === 'size') {
+        pick.variant = el.dataset.key;
+        $$('[data-act=size]', sheetBody).forEach((b) => b.setAttribute('aria-pressed', String(b === el)));
+        $('.pan__err', sheetBody).textContent = '';
+        return;
+      }
+      if (act === 'add') {
+        const p = pieceOf(pick.id);
+        const v = sizeOf(p, pick.variant);
+        const err = $('.pan__err', sheetBody);
+        if (!v) { err.textContent = 'Pick a size first.'; return; }
+        const bag = readBag();
+        const line = bag.find((l) => String(l.id) === String(p.id) && l.variant === v.key);
+        const have = line ? Number(line.qty) || 1 : 0;
+        if (have >= v.stock) { err.textContent = have ? 'That is all we have of this size.' : 'This size is sold out.'; return; }
+        if (line) line.qty = have + 1; else bag.push({ id: p.id, variant: v.key, qty: 1 });
+        writeBag(bag);
+        bagPanel();
+        return;
+      }
+      if (act === 'bag') { bagPanel(); return; }
+      if (act === 'more' || act === 'less' || act === 'drop') {
+        const bag = readBag();
+        const i = bag.findIndex((l) => String(l.id) === String(el.dataset.id) && l.variant === el.dataset.key);
+        if (i < 0) return;
+        if (act === 'drop') bag.splice(i, 1);
+        else if (act === 'less') { bag[i].qty = (Number(bag[i].qty) || 1) - 1; if (bag[i].qty < 1) bag.splice(i, 1); }
+        else bag[i].qty = (Number(bag[i].qty) || 1) + 1;
+        writeBag(bag);
+        bagPanel();
+      }
+    });
+
+    paintBag();
+  }
+
+  /* the jump links only appear once the section they point at is on the page */
+  $$('.nav__jump').forEach((a) => { a.hidden = !document.getElementById(a.dataset.needs); });
 
 })();
 </script>

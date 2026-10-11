@@ -108,7 +108,7 @@ async function waitFor(fn, { timeout = 10000, every = 50, what = 'condition' } =
   }
 }
 
-async function startServer({ trustProxy = false, dataDir } = {}) {
+async function startServer({ trustProxy = false, dataDir, mollie } = {}) {
   const port = await freePort();
   const dir = dataDir || mkdtempSync(join(tmpdir(), 'sloca-test-'));
   const siteUrl = `http://localhost:${port}`;
@@ -128,6 +128,11 @@ async function startServer({ trustProxy = false, dataDir } = {}) {
     TRUST_PROXY: trustProxy ? '1' : '0',
     NODE_ENV: 'test',
   };
+  // the shop only takes orders with a payment provider behind it; tests point it at a stand-in
+  if (mollie) {
+    env.MOLLIE_API_KEY = 'test_throwaway';
+    env.MOLLIE_API_BASE = mollie;
+  }
   const child = spawn(process.execPath, ['server/index.js'], { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });
   children.add(child);
   let log = '';
@@ -199,7 +204,9 @@ const nextIp = () => {
 };
 
 async function subscribe(S, body, { ip = nextIp(), headers = {} } = {}) {
-  const r = await S.req('POST', '/api/subscribe', { body, headers: { 'x-forwarded-for': ip, ...headers } });
+  // a name is required on the form, so tests that only care about the address get one for free
+  const payload = body && typeof body === 'object' && !('name' in body) ? { name: 'Test Member', ...body } : body;
+  const r = await S.req('POST', '/api/subscribe', { body: payload, headers: { 'x-forwarded-for': ip, ...headers } });
   await outboxSettled(S);
   return r;
 }
@@ -600,13 +607,58 @@ describe('members: subscribe, confirm, unsubscribe', () => {
     assert.equal(S.q("SELECT COUNT(*) AS n FROM subscribers WHERE lower(email) = 'mixed.case@example.com'")[0].n, 1);
   });
 
+  test('a name is required, the rest of the details are optional and stored as given', async () => {
+    const nameless = await S.req('POST', '/api/subscribe', {
+      body: { email: 'nameless@example.com' },
+      headers: { 'x-forwarded-for': nextIp() },
+    });
+    assert.equal(nameless.status, 400);
+    assert.equal(nameless.json.ok, false);
+    assert.ok(nameless.json.error);
+    assert.equal(subRow(S, 'nameless@example.com'), undefined);
+
+    const blank = await subscribe(S, { email: 'blank@example.com', name: '   ' });
+    assert.equal(blank.status, 400);
+    assert.equal(subRow(S, 'blank@example.com'), undefined);
+
+    const full = await subscribe(S, {
+      email: 'details@example.com',
+      name: '  Nina  Vega \n',
+      phone: '+31 6 12 34 56 78',
+      city: 'Amsterdam',
+      country: 'Netherlands',
+      birthday: '1990-04-02',
+    });
+    assert.equal(full.status, 200);
+    const row = subRow(S, 'details@example.com');
+    assert.equal(row.name, 'Nina Vega');
+    assert.equal(row.phone, '+31 6 12 34 56 78');
+    assert.equal(row.city, 'Amsterdam');
+    assert.equal(row.country, 'Netherlands');
+    assert.equal(row.birthday, '1990-04-02');
+
+    // a name alone is enough; a birthday that is not a date is dropped rather than stored
+    const bare = await subscribe(S, { email: 'bare@example.com', name: 'Sam', birthday: 'yesterday' });
+    assert.equal(bare.status, 200);
+    const bareRow = subRow(S, 'bare@example.com');
+    assert.equal(bareRow.name, 'Sam');
+    assert.equal(bareRow.phone, null);
+    assert.equal(bareRow.city, null);
+    assert.equal(bareRow.birthday, null);
+
+    // the confirmation mail greets the member by name
+    assert.ok(mailsTo(S, 'details@example.com').at(-1).html.includes('Nina Vega'));
+  });
+
   test('a form-encoded POST works too (no-JS fallback)', async () => {
     const r = await S.req('POST', '/api/subscribe', {
-      body: 'email=form%40example.com&company=',
+      body: 'email=form%40example.com&name=Form+Member&company=',
       headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-forwarded-for': nextIp() },
     });
     assert.equal(r.status, 200);
-    assert.equal(subRow(S, 'form@example.com').status, 'pending');
+    const row = subRow(S, 'form@example.com');
+    assert.equal(row.status, 'pending');
+    assert.equal(row.name, 'Form Member');
   });
 
   test('re-subscribing while pending rotates the token (old link dies), capped at 3 mails per address', async () => {
@@ -1020,7 +1072,7 @@ describe('admin dashboard API', () => {
     assert.equal(r.json.total, 10);
     assert.equal(r.json.rows.length, 10);
     for (const row of r.json.rows) {
-      assert.deepEqual(Object.keys(row).sort(), ['confirmed_at', 'created_at', 'email', 'id', 'status', 'unsubscribed_at']);
+      assert.deepEqual(Object.keys(row).sort(), ['birthday', 'city', 'confirmed_at', 'country', 'created_at', 'email', 'id', 'name', 'phone', 'status', 'unsubscribed_at']);
     }
     const created = r.json.rows.map((x) => x.created_at);
     assert.deepEqual(created, [...created].sort().reverse(), 'newest first');
@@ -1035,6 +1087,11 @@ describe('admin dashboard API', () => {
     assert.deepEqual(unsub.json.rows.map((x) => x.email), ['dave@example.com']);
     const bogus = await A('GET', "/api/admin/subscribers?status=x'%20OR%201=1");
     assert.equal(bogus.json.total, 10, 'an unknown status is ignored');
+    // the search box looks at the name as well as the address
+    const byName = await A('GET', '/api/admin/subscribers?q=Test%20Member');
+    assert.equal(byName.json.total, 10, 'every member in this fixture carries that name');
+    const byEmail = await A('GET', '/api/admin/subscribers?q=carol');
+    assert.deepEqual(byEmail.json.rows.map((x) => x.email), ['carol@example.com']);
   });
 
   test('subscribers: search is case-insensitive and treats % and _ literally', async () => {
@@ -1069,11 +1126,11 @@ describe('admin dashboard API', () => {
     assert.equal(r.headers['content-type'], 'text/csv; charset=utf-8');
     assert.equal(r.headers['content-disposition'], `attachment; filename="slocabaia-members-${today()}.csv"`);
     assert.equal(r.headers['cache-control'], 'no-store');
-    assert.ok(r.text.startsWith('email,confirmed_at\r\n'));
+    assert.ok(r.text.startsWith('email,name,phone,city,country,birthday,confirmed_at\r\n'));
     assert.ok(r.text.endsWith('\r\n'));
     const lines = r.text.trimEnd().split('\r\n').slice(1);
     assert.equal(lines.length, 8);
-    const emails = lines.map((l) => /^"([^"]*)","[^"]*"$/.exec(l)?.[1]);
+    const emails = lines.map((l) => /^"([^"]*)"/.exec(l)?.[1]);
     assert.ok(emails.every(Boolean), r.text);
     assert.ok(emails.includes("'=1+2@evil.example"));
     assert.ok(emails.includes("'+cmd@evil.example"));
@@ -1083,6 +1140,8 @@ describe('admin dashboard API', () => {
     assert.ok(!r.text.includes('carol@example.com'), 'pending members are not exported');
     assert.ok(!r.text.includes('dave@example.com'), 'unsubscribed members are not exported');
     for (const l of lines) assert.match(l, /,"\d{4}-\d{2}-\d{2}T[\d:.]+Z"$/);
+    // every exported row carries the name that was given when joining
+    for (const l of lines) assert.match(l, /^"[^"]*","Test Member"/);
   });
 
   test('delete a member: CSRF-refused call changes nothing, a real one erases the row', async () => {
@@ -1103,7 +1162,7 @@ describe('admin dashboard API', () => {
     const r = await A('GET', '/api/admin/stats');
     assert.equal(r.status, 200);
     const s = r.json;
-    assert.deepEqual(Object.keys(s).sort(), ['campaigns', 'days', 'joined', 'left', 'mail', 'members', 'pageviews', 'pageviewsAllTime']);
+    assert.deepEqual(Object.keys(s).sort(), ['campaigns', 'days', 'joined', 'left', 'mail', 'members', 'orders', 'pageviews', 'pageviewsAllTime', 'payments']);
     assert.equal(s.days.length, 30);
     assert.ok(s.days.every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)));
     assert.deepEqual(s.days, [...new Set(s.days)].sort(), 'ascending, no duplicates');

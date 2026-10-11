@@ -66,7 +66,7 @@ h3{font-size:15px}
 .pill{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
   min-height:42px;padding:10px 20px;border-radius:999px;border:1px solid transparent;
-  background:var(--ember);color:#050505;font-weight:700;font-size:14px;white-space:nowrap;
+  background:var(--ember);color:#050505;font-weight:700;font-size:14px;white-space:nowrap;text-decoration:none;
   transition:transform .3s cubic-bezier(.16,1,.3,1),background .2s,box-shadow .3s;
 }
 .pill:hover{transform:translateY(-1px);box-shadow:0 8px 26px rgb(255 94 20 / .25)}
@@ -324,6 +324,71 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
 .photo input{padding:8px 10px;font-size:13px;border-radius:10px}
 .photo__bar{display:flex;align-items:center;justify-content:space-between;gap:6px}
 .photo__move{display:flex;gap:6px}
+/* ---------- help panels: the long explanations, folded away until needed ---------- */
+.help{margin:0 0 14px;padding:0}
+.help > summary{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 18px;cursor:pointer;font-weight:700;font-size:15px;color:var(--text);
+  list-style:none;
+}
+.help > summary::-webkit-details-marker{display:none}
+.help > summary::before{
+  content:"";width:9px;height:9px;flex:0 0 auto;
+  border-right:2px solid var(--ember);border-bottom:2px solid var(--ember);
+  transform:rotate(-45deg);transition:transform .25s;
+}
+.help[open] > summary::before{transform:rotate(45deg)}
+.help__in{padding:0 18px 18px;max-width:78ch}
+.help h3{margin:18px 0 6px;font-size:14px;color:var(--ember)}
+.help h3:first-child{margin-top:0}
+.help p,.help li{margin:0 0 8px;font-size:14px;line-height:1.6;color:var(--text-2)}
+.help ol,.help ul{margin:0 0 8px;padding-left:20px}
+.help strong{color:var(--text)}
+.help code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px;color:var(--text)}
+
+/* ---------- rows: a product, an event or an order, foldable ---------- */
+.rows{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.row{border:1px solid var(--line-soft);border-radius:14px;background:var(--page);overflow:hidden}
+.row > summary{display:flex;align-items:center;gap:12px;padding:10px 12px;cursor:pointer;list-style:none}
+.row > summary::-webkit-details-marker{display:none}
+.row__thumb{width:44px;height:55px;flex:0 0 auto;object-fit:cover;border-radius:8px;background:#000}
+.row__thumb--empty{display:grid;place-items:center;color:var(--muted);font-size:11px;border:1px dashed var(--line)}
+.row__t{flex:1 1 auto;min-width:0}
+.row__t strong{display:block;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row__t span{display:block;font-size:12.5px;color:var(--muted)}
+.row__body{display:grid;gap:14px;padding:4px 12px 14px;border-top:1px solid var(--line-soft);margin-top:4px}
+.row__body .field{margin:0}
+.row__foot{display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:space-between}
+.row__foot .actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+.tag{
+  flex:0 0 auto;padding:3px 9px;border-radius:999px;border:1px solid var(--line);
+  font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-2);
+}
+.tag--live{border-color:rgb(12 163 12 / .5);background:rgb(12 163 12 / .12);color:#7ddc7d}
+.tag--draft{border-color:var(--line);color:var(--muted)}
+.tag--warn{border-color:rgb(250 178 25 / .5);background:rgb(250 178 25 / .12);color:var(--warning)}
+.tag--bad{border-color:rgb(208 59 59 / .5);background:rgb(208 59 59 / .12);color:#ff8c8c}
+.tag--hot{border-color:rgb(255 94 20 / .5);background:rgb(255 94 20 / .12);color:var(--ember-hot)}
+
+.fieldrow{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.vrow{display:grid;gap:8px;grid-template-columns:minmax(0,1fr) 108px auto;align-items:end}
+.vrow .field{margin:0}
+.vlist{display:grid;gap:8px;margin:0 0 10px}
+.money{font-variant-numeric:tabular-nums}
+.sub{margin:0;font-size:13px;color:var(--muted)}
+
+/* ---------- an order ---------- */
+.ord__grid{display:grid;gap:14px}
+@media (min-width:760px){ .ord__grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} }
+.ord__block h4{margin:0 0 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.ord__block p{margin:0 0 3px;font-size:14px;color:var(--text-2)}
+.ord__items{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.ord__items li{display:flex;justify-content:space-between;gap:12px;font-size:14px;color:var(--text-2)}
+.ord__sum{display:grid;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft)}
+.ord__sum div{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;color:var(--text-2)}
+.ord__sum div.is-total{color:var(--text);font-weight:700;font-size:15px}
+
 .icon-btn{width:34px;height:34px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--text-2);display:grid;place-items:center}
 .icon-btn:hover{color:var(--text);border-color:var(--text-2)}
 .icon-btn:disabled{opacity:.3;cursor:not-allowed}
@@ -409,6 +474,8 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
     <nav class="tabs" role="tablist" aria-label="Onderdelen">
       <button class="tab" role="tab" id="tab-overview" aria-controls="view-overview" data-view="overview">Overzicht</button>
       <button class="tab" role="tab" id="tab-messages" aria-controls="view-messages" data-view="messages">Berichten<span class="tab__n" id="tab-n" hidden></span></button>
+      <button class="tab" role="tab" id="tab-shop" aria-controls="view-shop" data-view="shop">Shop<span class="tab__n" id="tab-shop-n" hidden></span></button>
+      <button class="tab" role="tab" id="tab-events" aria-controls="view-events" data-view="events">Events</button>
       <button class="tab" role="tab" id="tab-news" aria-controls="view-news" data-view="news">Nieuwsbrief</button>
       <button class="tab" role="tab" id="tab-members" aria-controls="view-members" data-view="members">Leden</button>
       <button class="tab" role="tab" id="tab-site" aria-controls="view-site" data-view="site">Website</button>
@@ -533,11 +600,41 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
 
     <!-- ================================================================ MEMBERS -->
     <section id="view-members" role="tabpanel" aria-labelledby="tab-members" hidden>
+      <details class="card help">
+        <summary>Wat staat hier, en wat mag je ermee</summary>
+        <div class="help__in">
+          <h3>Hoe iemand lid wordt</h3>
+          <p>Iemand vult op de site zijn naam en e-mailadres in, en als hij wil ook telefoon,
+          woonplaats, land en geboortedag. Daarna krijgt hij een mail met een link. Pas als hij op die
+          link klikt staat hij op <strong>Actief</strong> en mag je hem mailen. Dat heet een dubbele
+          bevestiging en is in Nederland verplicht.</p>
+          <ul>
+            <li><strong>Actief</strong>: bevestigd, krijgt de nieuwsbrief.</li>
+            <li><strong>Wacht op bevestiging</strong>: heeft de link nog niet aangeklikt. Doe hier
+            niets mee, hij krijgt geen nieuwsbrief.</li>
+            <li><strong>Afgemeld</strong>: heeft zich uitgeschreven. Nooit opnieuw toevoegen.</li>
+          </ul>
+
+          <h3>De gegevens</h3>
+          <p>Naam en e-mail zijn verplicht, de rest geeft iemand vrijwillig. Gebruik ze alleen waarvoor
+          ze zijn gegeven: de nieuwsbrief en contact over Slocabaia. Niet doorverkopen, niet delen met
+          anderen. De geboortedag is er voor een attentie, niet voor reclame.</p>
+
+          <h3>Export</h3>
+          <p>Met de knop hierboven haal je alle actieve leden als CSV binnen, met alles wat ze hebben
+          ingevuld. Open dat bestand niet zomaar op een computer van iemand anders en zet het niet in
+          een gedeelde map.</p>
+
+          <h3>Iemand verwijderen</h3>
+          <p>Vraagt iemand om verwijderd te worden, klik dan op Verwijderen. Dat wist hem meteen en
+          helemaal. Binnen een maand reageren is wettelijk verplicht; dit is binnen een seconde klaar.</p>
+        </div>
+      </details>
       <section class="card">
         <div class="card__head"><h2>Leden</h2><span class="card__sub" id="m-count"></span></div>
         <div class="toolbar">
-          <label class="sr" for="m-q">Zoek op e-mail</label>
-          <input type="search" id="m-q" placeholder="Zoek op e-mail" autocomplete="off">
+          <label class="sr" for="m-q">Zoek op naam of e-mail</label>
+          <input type="search" id="m-q" placeholder="Zoek op naam of e-mail" autocomplete="off">
           <label class="sr" for="m-status">Status</label>
           <select id="m-status">
             <option value="">Alle</option>
@@ -546,10 +643,12 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
             <option value="unsubscribed">Afgemeld</option>
           </select>
           <a class="pill pill--ghost pill--small" href="/api/admin/subscribers.csv">Exporteer actieve leden (CSV)</a>
+          <p class="sub" style="flex:1 1 100%">In de export staan naam, e-mail, telefoon, woonplaats, land
+          en geboortedag van iedereen die zijn aanmelding heeft bevestigd.</p>
         </div>
         <div class="table-wrap">
           <table class="stack-table m-table">
-            <thead><tr><th>E-mail</th><th>Status</th><th>Aangemeld</th><th><span class="sr">Acties</span></th></tr></thead>
+            <thead><tr><th>Naam</th><th>E-mail</th><th>Gegevens</th><th>Status</th><th>Aangemeld</th><th><span class="sr">Acties</span></th></tr></thead>
             <tbody id="m-rows"></tbody>
           </table>
         </div>
@@ -558,8 +657,243 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
       </section>
     </section>
 
+    <!-- ================================================================ SHOP -->
+    <section id="view-shop" role="tabpanel" aria-labelledby="tab-shop" hidden>
+      <div class="notice" id="s-nomollie" hidden>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.8 15 14H1z"/><path d="M8 6.2v3.6M8 11.6v.4"/></svg>
+        <span><strong>Er kan nog niet afgerekend worden.</strong> De shop staat op de site, maar zonder
+        Mollie-sleutel kan niemand betalen. Vraag Karim om <code>MOLLIE_API_KEY</code> in te stellen,
+        daarna werkt afrekenen met iDEAL meteen.</span>
+      </div>
+      <div class="notice" id="s-testmollie" hidden>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.8 15 14H1z"/><path d="M8 6.2v3.6M8 11.6v.4"/></svg>
+        <span><strong>Mollie staat in testmodus.</strong> Bestellingen werken, maar er wordt geen echt geld
+        afgeschreven. Zet de live-sleutel in Mollie om echt te verkopen.</span>
+      </div>
+
+      <details class="card help" id="shop-help">
+        <summary>Zo werkt de shop. Lees dit een keer rustig door</summary>
+        <div class="help__in">
+          <h3>In het kort</h3>
+          <ol>
+            <li>Maak een product aan met <strong>Nieuw product</strong>.</li>
+            <li>Vul de naam, de prijs en een beschrijving in.</li>
+            <li>Zet de maten erin met de voorraad per maat.</li>
+            <li>Voeg minstens een foto toe. <strong>Zonder foto staat een product nooit op de site.</strong></li>
+            <li>Zet de status op <strong>Op de site</strong> en klik op <strong>Opslaan</strong>.</li>
+          </ol>
+          <p>De site is direct bijgewerkt. Verversen is niet nodig, een bezoeker ziet het bij zijn
+          volgende bezoek. Controleer het altijd zelf via <a href="/" target="_blank" rel="noopener">de site</a>.</p>
+
+          <h3>Foto's</h3>
+          <p>Gewoon je telefoonfoto's kiezen, dat is genoeg. De foto wordt in je browser verkleind
+          voordat hij wordt verstuurd, dus een foto van 5 MB wordt een paar honderd kB en de
+          locatiegegevens gaan eraf. Per product kunnen er acht foto's in.</p>
+          <p><strong>De eerste foto is de foto op de kaart in de shop.</strong> Met de pijltjes verander je
+          de volgorde. Vul bij elke foto een korte beschrijving in ("hoodie van de voorkant, bruin"):
+          die wordt voorgelezen aan blinde bezoekers en is beter voor Google.</p>
+          <p>Staande foto's staan het mooist: de kaarten in de shop zijn 4:5. Een liggende foto werkt
+          ook, die wordt netjes in het midden afgesneden.</p>
+
+          <h3>Prijs, maten en voorraad</h3>
+          <p>Vul de prijs in zoals je hem opschrijft: <code>49,95</code> of <code>49.95</code>, beide
+          goed. De prijs is <strong>inclusief btw</strong>, zo staat het ook op de site.</p>
+          <p>Elke maat heeft een eigen voorraad. Staat die op 0, dan kan die maat niet worden gekozen.
+          Zijn alle maten 0, dan zet de site het product automatisch op <strong>Uitverkocht</strong>.
+          Verkoop je iets waar geen maten bij horen, laat dan een maat staan met de naam
+          <em>One size</em>.</p>
+          <p><strong>De voorraad gaat pas omlaag als het geld binnen is.</strong> Een bestelling die
+          blijft hangen bij de bank raakt dus niks aan.</p>
+
+          <h3>Status</h3>
+          <ul>
+            <li><strong>Concept</strong>: alleen jij ziet het. Zo maak je iets rustig klaar.</li>
+            <li><strong>Op de site</strong>: te koop.</li>
+            <li><strong>Uitverkocht</strong>: wel te zien, niet te kopen. Goed voor een stuk dat
+            terugkomt of dat je laat zien als portfolio.</li>
+          </ul>
+
+          <h3>Bestellingen</h3>
+          <p>Elke bestelling krijgt een nummer zoals <code>SB-4K7PQ2</code>. Je ziet:</p>
+          <ul>
+            <li><strong>Wacht op betaling</strong>: de klant staat bij de bank, of is weggeklikt. Doe
+            hier niets mee. Betaalt niemand, dan blijft hij staan en verdwijnt de voorraadclaim nooit,
+            want die was er nooit.</li>
+            <li><strong>Betaald</strong>: dit is er een om te versturen.</li>
+            <li><strong>Verzonden</strong>: afgevinkt door jou.</li>
+            <li><strong>Mislukt, geannuleerd of verlopen</strong>: niets gebeurd, niets betaald.</li>
+          </ul>
+          <p>Bij elke betaalde bestelling krijg je een melding op je telefoon en een mail. De klant
+          krijgt automatisch een bevestiging met zijn bestelnummer. Verstuurd? Klik op
+          <strong>Markeer als verzonden</strong> en stuur de klant via <strong>Antwoord via Gmail</strong>
+          het pakketnummer. Dat laatste doet de site niet voor je, dat blijft jouw mail.</p>
+          <p><strong>Terugbetalen doe je bij Mollie</strong>, niet hier. Log in op Mollie, zoek het
+          bestelnummer en kies "refund". Daarna kun je de bestelling hier op verzonden laten staan of
+          verwijderen.</p>
+
+          <h3>Verzendkosten</h3>
+          <p>Onderaan deze pagina staan de zones. Per zone geef je de landen en de prijs. Een land dat
+          in geen enkele zone staat, kan niet besteld worden: de klant ziet dan dat we daar niet
+          leveren. "Gratis verzending vanaf" op 0 zetten betekent: nooit gratis.</p>
+          <p>Zet je <strong>zelf ophalen</strong> aan, dan kan de klant het adresveld overslaan. Mail
+          hem daarna zelf wanneer hij kan komen.</p>
+
+          <h3>Wat je nog moet aanleveren</h3>
+          <p>In de voorwaarden op de site staan een paar velden met een oranje <em>FILL IN</em>: de
+          bedrijfsnaam zoals die bij de KvK staat, het adres, het retouradres en de vervoerder. Stuur
+          die aan Karim, dan zet hij ze erin. Zonder die gegevens mag een webwinkel strikt genomen niet
+          verkopen in Nederland.</p>
+        </div>
+      </details>
+
+      <section class="card" style="margin-bottom:14px">
+        <div class="card__head">
+          <div><h2>Bestellingen</h2><p class="card__sub" id="o-sub"></p></div>
+          <div class="seg" id="o-filter" role="group" aria-label="Welke bestellingen">
+            <button type="button" data-of="todo">Te doen</button>
+            <button type="button" data-of="all">Alles</button>
+          </div>
+        </div>
+        <ul class="rows" id="o-list"></ul>
+        <p class="empty" id="o-empty" hidden>Nog geen bestellingen.</p>
+      </section>
+
+      <section class="card" style="margin-bottom:14px">
+        <div class="card__head">
+          <div><h2>Producten</h2><p class="card__sub" id="p-sub"></p></div>
+          <div class="actions" style="display:flex;gap:8px">
+            <a class="link-btn" href="/#shop" target="_blank" rel="noopener">Bekijk de shop</a>
+            <button class="pill pill--small" type="button" id="p-new">Nieuw product</button>
+          </div>
+        </div>
+        <ul class="rows" id="p-list"></ul>
+        <p class="empty" id="p-empty" hidden>Nog geen producten. Klik op "Nieuw product" om te beginnen.</p>
+        <p class="saved" id="p-status" role="status"></p>
+      </section>
+
+      <section class="card">
+        <div class="card__head">
+          <div><h2>Verzending en shopinstellingen</h2><p class="card__sub">Geldt voor alle producten</p></div>
+        </div>
+        <form id="s-form">
+          <label class="field"><span>De shop staat <small>zet uit en niemand kan afrekenen; de producten blijven wel zichtbaar</small></span>
+            <select id="s-open">
+              <option value="1">Open, mensen kunnen bestellen</option>
+              <option value="0">Dicht</option>
+            </select>
+          </label>
+          <div class="fieldrow">
+            <label class="field"><span>Btw-regel <small>staat boven de shop</small></span>
+              <input type="text" id="s-vat" maxlength="200"></label>
+            <label class="field"><span>Levertijd <small>staat boven de shop</small></span>
+              <input type="text" id="s-lead" maxlength="200"></label>
+          </div>
+          <label class="field" style="max-width:260px"><span>Gratis verzending vanaf <small>0 = nooit gratis</small></span>
+            <input type="text" id="s-free" inputmode="decimal" placeholder="bijv. 150,00"></label>
+
+          <h3 style="margin:18px 0 8px">Zones</h3>
+          <p class="sub" style="margin-bottom:10px">Landcodes met een komma ertussen: NL, BE, DE. Een land
+          dat nergens staat, kan niet bestellen.</p>
+          <div class="vlist" id="s-zones"></div>
+          <button class="link-btn" type="button" id="s-zone-add">Zone toevoegen</button>
+
+          <h3 style="margin:18px 0 8px">Zelf ophalen</h3>
+          <div class="fieldrow">
+            <label class="field"><span>Aanbieden?</span>
+              <select id="s-pickup">
+                <option value="0">Nee</option>
+                <option value="1">Ja, als keuze in de winkelwagen</option>
+              </select></label>
+            <label class="field"><span>Hoe het heet</span><input type="text" id="s-pickup-label" maxlength="60"></label>
+            <label class="field"><span>Kosten</span><input type="text" id="s-pickup-cents" inputmode="decimal" placeholder="0,00"></label>
+          </div>
+          <div class="actions">
+            <button class="pill" type="submit">Instellingen opslaan</button>
+          </div>
+          <p class="saved" id="s-status" role="status"></p>
+        </form>
+      </section>
+    </section>
+
+    <!-- ================================================================ EVENTS -->
+    <section id="view-events" role="tabpanel" aria-labelledby="tab-events" hidden>
+      <details class="card help" id="ev-help">
+        <summary>Zo zet je de foto's van een event op de site</summary>
+        <div class="help__in">
+          <h3>In het kort</h3>
+          <ol>
+            <li>Klik op <strong>Nieuw event</strong>.</li>
+            <li>Vul de titel in ("Slocabaia Night III"), de datum en waar het was.</li>
+            <li>Schrijf er desgewenst een paar regels bij.</li>
+            <li>Voeg de foto's toe. Je kunt ze in een keer allemaal selecteren.</li>
+            <li>Zet de status op <strong>Op de site</strong> en klik op <strong>Opslaan</strong>.</li>
+          </ol>
+          <p>Een event zonder foto's komt niet op de site, ook niet als de status op "op de site" staat.</p>
+
+          <h3>Downloaden door bezoekers</h3>
+          <p>Elke foto krijgt op de site een knop <strong>Download</strong>. Bezoekers krijgen dan de
+          grote versie als bestand, met een nette naam zoals
+          <code>slocabaia-slocabaia-night-iii-03.jpg</code>. Je hoeft daar niets voor te doen.</p>
+          <p>De foto's worden bij het uploaden verkleind naar maximaal 2200 pixels. Dat is ruim genoeg
+          om te posten of op A4 af te drukken en houdt de site snel. Wil iemand het origineel voor
+          print, mail dat dan zelf.</p>
+
+          <h3>Mensen op de foto</h3>
+          <p>Zet alleen foto's online waarvan je weet dat het mag. Vraagt iemand of zijn foto weg kan,
+          verwijder die dan hier: hij is daarna direct van de site af. In de voorwaarden op de site
+          staat al dat mensen dit kunnen vragen.</p>
+
+          <h3>Volgorde</h3>
+          <p>Met de pijltjes verander je de volgorde van de foto's en van de events. Bovenaan staat op
+          de site ook bovenaan. Het nieuwste event bovenaan is meestal het mooist.</p>
+
+          <h3>Beschrijvingen</h3>
+          <p>Een korte beschrijving per foto is netjes ("dansvloer rond middernacht"), maar niet
+          verplicht. Blijft het leeg, dan gebruikt de site de titel van het event met een nummer.</p>
+        </div>
+      </details>
+
+      <section class="card">
+        <div class="card__head">
+          <div><h2>Events</h2><p class="card__sub" id="ev-sub"></p></div>
+          <div class="actions" style="display:flex;gap:8px">
+            <a class="link-btn" href="/#events" target="_blank" rel="noopener">Bekijk op de site</a>
+            <button class="pill pill--small" type="button" id="ev-new">Nieuw event</button>
+          </div>
+        </div>
+        <ul class="rows" id="ev-list"></ul>
+        <p class="empty" id="ev-empty" hidden>Nog geen events. Klik op "Nieuw event" om te beginnen.</p>
+        <p class="saved" id="ev-status" role="status"></p>
+      </section>
+    </section>
+
     <!-- ================================================================ WEBSITE -->
     <section id="view-site" role="tabpanel" aria-labelledby="tab-site" hidden>
+      <details class="card help">
+        <summary>De film bovenaan en de fotorij, hoe je ze wisselt</summary>
+        <div class="help__in">
+          <h3>De hero</h3>
+          <p>Dat is de film of de foto helemaal bovenaan de site. Kies een nieuw bestand en de rest
+          gaat vanzelf: de server maakt er een versie voor de telefoon en een voor het grote scherm van,
+          haalt het geluid eruit (de film speelt stil af) en zet hem op de site zodra hij klaar is.
+          Een film van een paar minuten verwerken duurt even; je krijgt een melding als het klaar is en
+          je kunt dit scherm ondertussen sluiten.</p>
+          <p>Film liever staand of vierkant filmen: op de telefoon staat de hero in een band van 16:9,
+          op de computer vult hij het scherm. Houd hem kort, tien tot dertig seconden is genoeg.</p>
+          <p><strong>Stilstaand beeld:</strong> spoel de film naar het beeld dat je mooi vindt en klik
+          op "Gebruik dit beeld". Dat is wat bezoekers zien als de film niet kan spelen, bijvoorbeeld
+          in de spaarstand van een iPhone.</p>
+
+          <h3>De fotorij</h3>
+          <p>De rij onder het ledenblok. Voeg foto's toe, sleep ze met de pijltjes in de goede volgorde
+          en schrijf er een korte beschrijving bij. Zonder foto's verdwijnt de rij van de site.</p>
+
+          <h3>Formaat</h3>
+          <p>Je telefoonfoto's zijn goed genoeg. Ze worden in je browser verkleind voordat ze worden
+          verstuurd, dus het gaat snel en de locatiegegevens gaan eraf. Staand of vierkant staat het
+          mooist in de rij.</p>
+        </div>
+      </details>
       <div class="grid-2">
         <section class="card">
           <div class="card__head">
@@ -695,6 +1029,17 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
   const WHEN = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   const keyDate = (k) => new Date(`${k}T12:00:00`);
   const when = (iso) => (iso ? WHEN.format(new Date(iso)) : '');
+  const BDAY = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'long' });
+  const YMD = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+  /** "2026-09-13" as "13 september 2026"; the time of day has no business here */
+  const onDay = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v ?? '')) ? YMD.format(new Date(`${v}T12:00:00`)) : '');
+  /* a birthday is YYYY-MM-DD, or MM-DD when the year was left out */
+  const birthday = (v) => {
+    const m = /^(?:(\d{4})-)?(\d{2})-(\d{2})$/.exec(String(v ?? ''));
+    if (!m) return '';
+    const d = BDAY.format(new Date(`${m[1] || '2000'}-${m[2]}-${m[3]}T12:00:00`));
+    return m[1] ? `${d} ${m[1]}` : d;
+  };
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } },
@@ -814,7 +1159,7 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
   });
 
   /* ------------------------------------------------------------------ tabs */
-  const VIEWS = ['overview', 'messages', 'news', 'members', 'site'];
+  const VIEWS = ['overview', 'messages', 'shop', 'events', 'news', 'members', 'site'];
   const loaded = new Set();
   function selectView(name) {
     if (!VIEWS.includes(name)) name = 'overview';
@@ -829,6 +1174,8 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
     if (name === 'members' && !loaded.has('members')) { loaded.add('members'); loadMembers(true); }
     if (name === 'site' && !loaded.has('site')) { loaded.add('site'); loadSite(); }
     if (name === 'messages') { loadMessages(); paintPushCard(); }
+    if (name === 'shop') loadShop();
+    if (name === 'events' && !loaded.has('events')) { loaded.add('events'); loadEvents(); }
     if (name === 'overview') requestAnimationFrame(drawCharts);
   }
   $$('.tab').forEach((t) => t.addEventListener('click', () => selectView(t.dataset.view)));
@@ -1275,12 +1622,16 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
       const tb = $('#m-rows');
       if (reset) tb.textContent = '';
       for (const m of rows) {
+        /* phone, city, country and birthday are optional, so only what was filled in is shown */
+        const extra = [m.phone, [m.city, m.country].filter(Boolean).join(', '), birthday(m.birthday)].filter(Boolean);
         tb.append(h('tr', {},
+          h('td', { text: m.name || '-' }),
           h('td', { class: 'email', text: m.email }),
+          h('td', { class: 'sub', text: extra.length ? extra.join(' · ') : '-' }),
           h('td', {}, statusCell(m.status)),
           h('td', { text: when(m.confirmed_at || m.created_at) }),
           h('td', {}, h('div', { class: 'row-actions' }, h('button', { class: 'link-btn link-btn--danger', type: 'button', text: 'Verwijderen', onclick: async () => {
-            if (!(await confirmDialog('Lid verwijderen?', `${m.email} wordt definitief uit de lijst gewist, inclusief de verzendgeschiedenis.`, 'Verwijderen'))) return;
+            if (!(await confirmDialog('Lid verwijderen?', `${m.name ? `${m.name} (${m.email})` : m.email} wordt definitief uit de lijst gewist, inclusief de verzendgeschiedenis.`, 'Verwijderen'))) return;
             await api(`subscribers/${m.id}`, { method: 'DELETE' });
             toast('Verwijderd.');
             loadMembers(true);
@@ -1293,6 +1644,573 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
       $('#m-count').textContent = `${fmt(total)} ${total === 1 ? 'resultaat' : 'resultaten'}`;
     } catch (ex) { if (ex.status !== 401) toast('De leden konden niet worden geladen.'); }
   }
+
+  /* ------------------------------------------------------------------ shop */
+  /* Everything the shop knows comes from one GET; every change posts and gets
+     the fresh row back, so the screen never guesses what the server did. */
+  let SHOP = null;
+  let orderFilter = 'todo';
+  let shopBatch = false;
+  const pStatus = (m) => { $('#p-status').textContent = m; };
+  const sStatus = (m) => { $('#s-status').textContent = m; };
+  const EUR = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' });
+  const euro = (c) => EUR.format((Number(c) || 0) / 100);
+  /* a price for an input field: 4995 -> "49,95" */
+  const priceField = (c) => ((Number(c) || 0) / 100).toFixed(2).replace('.', ',');
+  const ORDER_TAG = {
+    open: ['Wacht op betaling', 'tag--warn'],
+    paid: ['Betaald', 'tag--hot'],
+    shipped: ['Verzonden', 'tag--live'],
+    failed: ['Mislukt', 'tag--bad'],
+    canceled: ['Geannuleerd', 'tag--draft'],
+    expired: ['Verlopen', 'tag--draft'],
+  };
+  const PROD_TAG = { live: ['Op de site', 'tag--live'], draft: ['Concept', 'tag--draft'], soldout: ['Uitverkocht', 'tag--warn'] };
+  const tag = (pair) => h('span', { class: `tag ${pair[1]}`, text: pair[0] });
+
+  async function loadShop() {
+    try {
+      SHOP = await api('shop');
+      renderShop();
+    } catch (ex) { if (ex.status !== 401) toast('De shop kon niet worden geladen.'); }
+  }
+
+  function renderShop() {
+    const mode = (ME && ME.payments) || 'off';
+    $('#s-nomollie').hidden = mode !== 'off';
+    $('#s-testmollie').hidden = mode !== 'test';
+    renderOrders();
+    renderProducts();
+    renderSettings();
+  }
+
+  /* ---------------------------------------------------------- orders */
+  function renderOrders() {
+    const list = $('#o-list');
+    list.textContent = '';
+    const all = SHOP.orders;
+    const todo = all.filter((o) => o.status === 'paid');
+    const rows = orderFilter === 'todo' ? todo : all;
+    $$('#o-filter button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.of === orderFilter)));
+    $('#o-empty').hidden = rows.length > 0;
+    $('#o-empty').textContent = all.length ? 'Niets te doen: alles is verstuurd.' : 'Nog geen bestellingen.';
+    const revenue = all.filter((o) => o.status === 'paid' || o.status === 'shipped').reduce((n, o) => n + o.total_cents, 0);
+    $('#o-sub').textContent = all.length
+      ? `${fmt(todo.length)} te versturen, ${fmt(all.length)} in totaal, ${euro(revenue)} ontvangen`
+      : '';
+    const n = $('#tab-shop-n');
+    n.hidden = !todo.length;
+    n.textContent = String(todo.length);
+    for (const o of rows) list.append(orderRow(o));
+  }
+
+  function orderRow(o) {
+    const tp = ORDER_TAG[o.status] || [o.status, 'tag--draft'];
+    const items = h('ul', { class: 'ord__items' }, o.items.map((it) => h('li', {},
+      h('span', { text: `${it.qty}x ${it.name}${it.variant ? ` (${it.variant})` : ''}` }),
+      h('span', { class: 'money', text: euro(it.price_cents * it.qty) }))));
+    const addr = o.country === 'PICKUP'
+      ? [h('p', { text: 'Komt het zelf ophalen.' })]
+      : [h('p', { text: o.street }), h('p', { text: `${o.postcode} ${o.city}` }), h('p', { text: o.country })];
+    const body = h('div', { class: 'row__body' },
+      h('div', { class: 'ord__grid' },
+        h('div', { class: 'ord__block' },
+          h('h4', { text: 'Naar wie' }),
+          h('p', { text: o.name }),
+          h('p', {}, h('a', { href: `mailto:${o.email}`, text: o.email })),
+          o.phone ? h('p', {}, h('a', { href: `tel:${o.phone}`, text: o.phone })) : null,
+          ...addr,
+          o.note ? h('p', { class: 'sub', text: `Opmerking: ${o.note}` }) : null),
+        h('div', { class: 'ord__block' },
+          h('h4', { text: 'Wat' }),
+          items,
+          h('div', { class: 'ord__sum' },
+            h('div', {}, h('span', { text: 'Artikelen' }), h('span', { class: 'money', text: euro(o.subtotal_cents) })),
+            h('div', {}, h('span', { text: 'Verzending' }), h('span', { class: 'money', text: o.shipping_cents ? euro(o.shipping_cents) : 'gratis' })),
+            h('div', { class: 'is-total' }, h('span', { text: 'Totaal' }), h('span', { class: 'money', text: euro(o.total_cents) }))),
+          h('p', { class: 'sub', text: [
+            o.payment_method ? `Betaald met ${o.payment_method}` : null,
+            o.paid_at ? `op ${when(o.paid_at)}` : null,
+            o.shipped_at ? `· verzonden ${when(o.shipped_at)}` : null,
+          ].filter(Boolean).join(' ') }))),
+      h('div', { class: 'row__foot' },
+        h('div', { class: 'actions' },
+          h('a', { class: 'pill pill--ghost pill--small', href: gmailOrder(o), target: '_blank', rel: 'noopener', text: 'Antwoord via Gmail' }),
+          o.status === 'paid' ? h('button', { class: 'pill pill--small', type: 'button', text: 'Markeer als verzonden', onclick: async () => {
+            try {
+              await api(`orders/${o.id}`, { method: 'PUT', body: { shipped: true } });
+              toast(`${o.ref} staat op verzonden.`);
+              await loadShop();
+            } catch (ex) { if (ex.status !== 401) toast(`Dat lukte niet: ${ex.message}`); }
+          } }) : null,
+          o.status === 'shipped' ? h('button', { class: 'link-btn', type: 'button', text: 'Toch nog niet verzonden', onclick: async () => {
+            try {
+              await api(`orders/${o.id}`, { method: 'PUT', body: { shipped: false } });
+              await loadShop();
+            } catch (ex) { if (ex.status !== 401) toast(`Dat lukte niet: ${ex.message}`); }
+          } }) : null),
+        h('button', { class: 'link-btn link-btn--danger', type: 'button', text: 'Verwijderen', onclick: async () => {
+          if (!(await confirmDialog('Bestelling verwijderen?', `${o.ref} verdwijnt uit dit overzicht. Een eventuele terugbetaling regel je bij Mollie; dat gebeurt hier niet.`, 'Verwijderen'))) return;
+          try {
+            await api(`orders/${o.id}`, { method: 'DELETE' });
+            toast('Bestelling verwijderd.');
+            await loadShop();
+          } catch (ex) { if (ex.status !== 401) toast(`Dat lukte niet: ${ex.message}`); }
+        } })));
+    const row = h('details', { class: 'row', id: `ord-${o.id}` },
+      h('summary', {},
+        h('span', { class: 'row__t' },
+          h('strong', { text: `${o.ref} · ${o.name}` }),
+          h('span', { text: `${when(o.created_at)} · ${euro(o.total_cents)} · ${o.items.reduce((n, i) => n + i.qty, 0)} stuk(s)` })),
+        tag(tp),
+        !o.read_at && o.status === 'paid' ? h('span', { class: 'tag tag--hot', text: 'Nieuw' }) : null),
+      body);
+    /* opening a paid order marks it read, which clears the badge on the bell */
+    row.addEventListener('toggle', async () => {
+      if (!row.open || o.read_at) return;
+      try { await api(`orders/${o.id}`, { method: 'PUT', body: { read: true } }); o.read_at = new Date().toISOString(); refreshCounts(); } catch { /* stays unread */ }
+    });
+    return row;
+  }
+
+  const gmailOrder = (o) => gmail(`&view=cm&fs=1&to=${encodeURIComponent(o.email)}&su=${encodeURIComponent(`Your Slocabaia order ${o.ref}`)}&body=${encodeURIComponent(`Hi ${String(o.name).split(' ')[0]},\n\n`)}`);
+
+  $$('#o-filter button').forEach((b) => b.addEventListener('click', () => { orderFilter = b.dataset.of; renderOrders(); }));
+
+  /* ---------------------------------------------------------- products */
+  function renderProducts() {
+    const list = $('#p-list');
+    const open = new Set($$('#p-list details[open]').map((d) => d.id));
+    list.textContent = '';
+    const items = SHOP.products;
+    $('#p-empty').hidden = items.length > 0;
+    const live = items.filter((p) => p.status === 'live' && p.images.length).length;
+    $('#p-sub').textContent = `${fmt(items.length)} van ${SHOP.limits.products}, waarvan ${fmt(live)} te koop op de site`;
+    items.forEach((p, i) => list.append(productRow(p, i, items.length, open.has(`prod-${p.id}`))));
+  }
+
+  function productRow(p, i, total, isOpen) {
+    const f = {
+      name: h('input', { type: 'text', maxlength: '120', value: p.name }),
+      price: h('input', { type: 'text', inputmode: 'decimal', value: priceField(p.price_cents) }),
+      status: h('select', {}, [
+        h('option', { value: 'draft', text: 'Concept, alleen voor jou' }),
+        h('option', { value: 'live', text: 'Op de site, te koop' }),
+        h('option', { value: 'soldout', text: 'Uitverkocht, wel te zien' }),
+      ]),
+      tagline: h('input', { type: 'text', maxlength: '160', value: p.tagline, placeholder: 'Bijv. handgeverfd, een van een' }),
+      body: h('textarea', { rows: '5', maxlength: '4000', style: 'min-height:130px', text: p.body, placeholder: 'Waar het van gemaakt is, hoe het valt, maten in cm, hoe je het wast.' }),
+    };
+    f.status.value = p.status;
+
+    /* sizes: one row each, and at least one row is always on screen */
+    const sizes = h('div', { class: 'vlist' });
+    const sizeRow = (v = { label: '', stock: 0 }) => {
+      const label = h('input', { type: 'text', maxlength: '30', value: v.label, placeholder: 'M' });
+      const stock = h('input', { type: 'text', inputmode: 'numeric', value: String(v.stock ?? 0) });
+      const row = h('div', { class: 'vrow' },
+        h('label', { class: 'field' }, h('span', { text: 'Maat' }), label),
+        h('label', { class: 'field' }, h('span', { text: 'Voorraad' }), stock),
+        h('button', { class: 'link-btn link-btn--danger', type: 'button', text: 'Weg', onclick: () => {
+          row.remove();
+          if (!sizes.children.length) sizes.append(sizeRow());
+          sizes.querySelector('input').focus();
+        } }));
+      row.dataset.key = v.key || '';
+      row._read = () => ({ key: v.key || '', label: label.value, stock: stock.value });
+      return row;
+    };
+    (p.variants.length ? p.variants : [{ label: 'One size', stock: 0 }]).forEach((v) => sizes.append(sizeRow(v)));
+
+    const photos = h('ol', { class: 'photos' });
+    const paintPhotos = () => {
+      photos.textContent = '';
+      p.images.forEach((img, k) => {
+        const alt = h('input', { type: 'text', maxlength: '200', value: img.alt || '', placeholder: 'Bijv. hoodie van de voorkant' });
+        alt.addEventListener('change', async () => {
+          try {
+            const fresh = await api(`products/${p.id}/photos/${encodeURIComponent(img.id)}`, { method: 'PUT', body: { alt: alt.value } });
+            Object.assign(p, fresh);
+            pStatus('Beschrijving opgeslagen.');
+          } catch (ex) { if (ex.status !== 401) pStatus(`Dat lukte niet: ${ex.message}`); }
+        });
+        const move = (d) => async () => {
+          const ids = p.images.map((x) => x.id);
+          [ids[k], ids[k + d]] = [ids[k + d], ids[k]];
+          try {
+            const fresh = await api(`products/${p.id}/photos/order`, { method: 'POST', body: { ids } });
+            Object.assign(p, fresh);
+            paintPhotos();
+          } catch (ex) { if (ex.status !== 401) pStatus(`Dat lukte niet: ${ex.message}`); }
+        };
+        photos.append(h('li', { class: 'photo' },
+          h('img', { src: img.thumb || img.src, alt: '', loading: 'lazy' }),
+          h('label', { class: 'field' }, h('span', { text: k === 0 ? 'Beschrijving (dit is de kaartfoto)' : `Beschrijving foto ${k + 1}` }), alt),
+          h('div', { class: 'photo__bar' },
+            h('div', { class: 'photo__move' },
+              iconBtn(ICON.left, 'Eerder zetten', move(-1), k === 0, 'left'),
+              iconBtn(ICON.right, 'Later zetten', move(1), k === p.images.length - 1, 'right')),
+            h('button', { class: 'link-btn link-btn--danger', type: 'button', text: 'Verwijderen', onclick: async () => {
+              if (!(await confirmDialog('Foto verwijderen?', 'De foto verdwijnt van de site.', 'Verwijderen'))) return;
+              try {
+                const fresh = await api(`products/${p.id}/photos/${encodeURIComponent(img.id)}`, { method: 'DELETE' });
+                Object.assign(p, fresh);
+                paintPhotos();
+                pStatus('Foto verwijderd.');
+              } catch (ex) { if (ex.status !== 401) pStatus(`Dat lukte niet: ${ex.message}`); }
+            } }))));
+      });
+    };
+    paintPhotos();
+
+    const file = h('input', { class: 'sr', type: 'file', accept: 'image/*', multiple: true });
+    file.addEventListener('change', async (e) => {
+      const files = [...e.target.files];
+      e.target.value = '';
+      if (!files.length) return;
+      const take = files.slice(0, Math.max(0, SHOP.limits.photos - p.images.length));
+      shopBatch = true;
+      let added = 0;
+      const failed = [];
+      for (const [k, item] of take.entries()) {
+        pStatus(`Foto ${k + 1} van ${take.length} klaarmaken en uploaden...`);
+        try {
+          const big = await toJpeg(item, 1800);
+          const small = big.w > 800 || big.h > 800 ? await toJpeg(item, 800) : null;
+          const fresh = await api(`products/${p.id}/photos`, { method: 'POST', body: { image: big.data, thumb: small ? small.data : undefined, alt: '' } });
+          Object.assign(p, fresh);
+          added += 1;
+          paintPhotos();
+        } catch (ex) {
+          if (ex.status === 401) { shopBatch = false; return; }
+          failed.push(`${item.name}: ${ex.message}`);
+        }
+      }
+      shopBatch = false;
+      const parts = [];
+      if (added) parts.push(`${added === 1 ? 'Foto' : `${added} foto's`} toegevoegd.`);
+      if (files.length > take.length) parts.push(`${files.length - take.length} pasten er niet meer bij (acht per product).`);
+      if (failed.length) parts.push(`Niet gelukt: ${failed.join('; ')}`);
+      pStatus(parts.join(' '));
+    });
+
+    const save = async () => {
+      const variants = [...sizes.children].map((r) => r._read()).filter((v) => v.label.trim());
+      try {
+        const fresh = await api(`products/${p.id}`, {
+          method: 'PUT',
+          body: {
+            name: f.name.value, price: f.price.value, status: f.status.value,
+            tagline: f.tagline.value, body: f.body.value,
+            variants: variants.length ? variants : [{ label: 'One size', stock: 0 }],
+          },
+        });
+        Object.assign(p, fresh);
+        pStatus(`"${fresh.name}" opgeslagen.`);
+        toast(fresh.status === 'live' && fresh.images.length ? 'Opgeslagen en op de site.' : 'Opgeslagen.');
+        await loadShop();
+      } catch (ex) { if (ex.status !== 401) pStatus(`Dat lukte niet: ${ex.message}`); }
+    };
+
+    const move = (d) => async () => {
+      const ids = SHOP.products.map((x) => x.id);
+      [ids[i], ids[i + d]] = [ids[i + d], ids[i]];
+      try {
+        await api('products/order', { method: 'POST', body: { ids } });
+        await loadShop();
+      } catch (ex) { if (ex.status !== 401) pStatus(`Dat lukte niet: ${ex.message}`); }
+    };
+
+    const first = p.images[0];
+    const warn = !p.images.length
+      ? 'Zonder foto staat dit product niet op de site'
+      : p.status === 'draft' ? 'Concept, nog niet zichtbaar' : '';
+    return h('details', { class: 'row', id: `prod-${p.id}`, open: isOpen || undefined },
+      h('summary', {},
+        first ? h('img', { class: 'row__thumb', src: first.thumb || first.src, alt: '', loading: 'lazy' })
+              : h('span', { class: 'row__thumb row__thumb--empty', text: 'geen' }),
+        h('span', { class: 'row__t' },
+          h('strong', { text: p.name }),
+          h('span', { text: [euro(p.price_cents), `${p.variants.reduce((n, v) => n + v.stock, 0)} op voorraad`, warn].filter(Boolean).join(' · ') })),
+        tag(PROD_TAG[p.status] || PROD_TAG.draft)),
+      h('div', { class: 'row__body' },
+        h('div', { class: 'fieldrow' },
+          h('label', { class: 'field' }, h('span', { text: 'Naam' }), f.name),
+          h('label', { class: 'field' }, h('span', { text: 'Prijs in euro' }), f.price),
+          h('label', { class: 'field' }, h('span', { text: 'Status' }), f.status)),
+        h('label', { class: 'field' }, h('span', { text: 'Een regel eronder' }), f.tagline),
+        h('label', { class: 'field' }, h('span', { text: 'Beschrijving' }), f.body),
+        h('div', {}, h('h3', { text: 'Maten en voorraad' }),
+          h('p', { class: 'sub', style: 'margin:4px 0 8px', text: 'Voorraad 0 betekent dat die maat niet gekozen kan worden. Alles op 0 zet het product op uitverkocht.' }),
+          sizes,
+          h('button', { class: 'link-btn', type: 'button', text: 'Maat toevoegen', onclick: () => { const r = sizeRow(); sizes.append(r); r.querySelector('input').focus(); } })),
+        h('div', {}, h('h3', { text: `Foto's` }),
+          h('p', { class: 'sub', style: 'margin:4px 0 8px', text: `De eerste foto is de foto in de shop. Maximaal ${SHOP.limits.photos}.` }),
+          photos,
+          h('label', { class: 'pill pill--ghost pill--small', style: 'margin-top:4px', text: `Foto's toevoegen` }, file)),
+        h('div', { class: 'row__foot' },
+          h('div', { class: 'actions' },
+            h('button', { class: 'pill pill--small', type: 'button', text: 'Opslaan', onclick: save }),
+            h('div', { class: 'photo__move' },
+              iconBtn(ICON.up, 'Eerder in de shop', move(-1), i === 0, 'up'),
+              iconBtn(ICON.down, 'Later in de shop', move(1), i === total - 1, 'down'))),
+          h('button', { class: 'link-btn link-btn--danger', type: 'button', text: 'Product verwijderen', onclick: async () => {
+            if (!(await confirmDialog('Product verwijderen?', `"${p.name}" en alle foto's worden gewist. Bestellingen blijven bewaard.`, 'Verwijderen'))) return;
+            try {
+              await api(`products/${p.id}`, { method: 'DELETE' });
+              toast('Product verwijderd.');
+              await loadShop();
+            } catch (ex) { if (ex.status !== 401) pStatus(`Dat lukte niet: ${ex.message}`); }
+          } }))));
+  }
+
+  $('#p-new').addEventListener('click', async () => {
+    try {
+      const p = await api('products', { method: 'POST', body: { name: 'Nieuw product', price: '0,00', status: 'draft', variants: [{ label: 'One size', stock: 1 }] } });
+      await loadShop();
+      const row = document.getElementById(`prod-${p.id}`);
+      if (row) { row.open = true; row.scrollIntoView({ block: 'center' }); row.querySelector('input').focus(); }
+      pStatus('Vul de naam en de prijs in, voeg een foto toe en zet de status op "op de site".');
+    } catch (ex) { if (ex.status !== 401) pStatus(`Dat lukte niet: ${ex.message}`); }
+  });
+
+  /* ---------------------------------------------------------- settings */
+  function zoneRow(z = { label: '', countries: [], cents: 0 }) {
+    const label = h('input', { type: 'text', maxlength: '60', value: z.label, placeholder: 'Bijv. Nederland' });
+    const countries = h('input', { type: 'text', value: (z.countries || []).join(', '), placeholder: 'NL' });
+    const cents = h('input', { type: 'text', inputmode: 'decimal', value: priceField(z.cents) });
+    const row = h('div', { class: 'vrow', style: 'grid-template-columns:minmax(0,1fr) minmax(0,1fr) 108px auto' },
+      h('label', { class: 'field' }, h('span', { text: 'Naam van de zone' }), label),
+      h('label', { class: 'field' }, h('span', { text: 'Landcodes' }), countries),
+      h('label', { class: 'field' }, h('span', { text: 'Prijs' }), cents),
+      h('button', { class: 'link-btn link-btn--danger', type: 'button', text: 'Weg', onclick: () => row.remove() }));
+    row._read = () => ({
+      key: z.key || label.value,
+      label: label.value,
+      countries: countries.value.split(/[,\s;]+/).map((c) => c.trim().toUpperCase()).filter(Boolean),
+      cents: cents.value,
+    });
+    return row;
+  }
+
+  function renderSettings() {
+    const s = SHOP.settings;
+    $('#s-open').value = s.open ? '1' : '0';
+    $('#s-vat').value = s.vatNote;
+    $('#s-lead').value = s.leadTime;
+    $('#s-free').value = s.freeFrom ? priceField(s.freeFrom) : '0,00';
+    $('#s-pickup').value = s.pickup.enabled ? '1' : '0';
+    $('#s-pickup-label').value = s.pickup.label;
+    $('#s-pickup-cents').value = priceField(s.pickup.cents);
+    const box = $('#s-zones');
+    box.textContent = '';
+    s.zones.forEach((z) => box.append(zoneRow(z)));
+  }
+
+  $('#s-zone-add').addEventListener('click', () => {
+    const r = zoneRow();
+    $('#s-zones').append(r);
+    r.querySelector('input').focus();
+  });
+
+  $('#s-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const zones = [...$('#s-zones').children].map((r) => r._read()).filter((z) => z.countries.length);
+    if (!zones.length) { sStatus('Houd minstens een zone met een land erin over.'); return; }
+    try {
+      SHOP.settings = await api('shop', {
+        method: 'PUT',
+        body: {
+          open: $('#s-open').value === '1',
+          vatNote: $('#s-vat').value,
+          leadTime: $('#s-lead').value,
+          freeFrom: $('#s-free').value,
+          zones,
+          pickup: { enabled: $('#s-pickup').value === '1', label: $('#s-pickup-label').value, cents: $('#s-pickup-cents').value },
+        },
+      });
+      renderSettings();
+      sStatus('Opgeslagen.');
+      toast('Shopinstellingen opgeslagen.');
+    } catch (ex) { if (ex.status !== 401) sStatus(`Dat lukte niet: ${ex.message}`); }
+  });
+
+  /* ------------------------------------------------------------------ events */
+  let EVENTS = null;
+  const evStatus = (m) => { $('#ev-status').textContent = m; };
+
+  async function loadEvents() {
+    try {
+      EVENTS = await api('events');
+      renderEvents();
+    } catch (ex) { if (ex.status !== 401) toast('De events konden niet worden geladen.'); }
+  }
+
+  function renderEvents() {
+    const list = $('#ev-list');
+    const open = new Set($$('#ev-list details[open]').map((d) => d.id));
+    list.textContent = '';
+    const rows = EVENTS.rows;
+    $('#ev-empty').hidden = rows.length > 0;
+    const live = rows.filter((e) => e.status === 'live' && e.photos.length).length;
+    $('#ev-sub').textContent = `${fmt(rows.length)} van ${EVENTS.limits.events}, waarvan ${fmt(live)} op de site`;
+    rows.forEach((ev, i) => list.append(eventRow(ev, i, rows.length, open.has(`ev-${ev.id}`))));
+  }
+
+  function eventRow(ev, i, total, isOpen) {
+    const f = {
+      title: h('input', { type: 'text', maxlength: '120', value: ev.title }),
+      held: h('input', { type: 'date', value: ev.held_on || '' }),
+      place: h('input', { type: 'text', maxlength: '120', value: ev.place, placeholder: 'Bijv. Amsterdam Noord' }),
+      status: h('select', {}, [
+        h('option', { value: 'draft', text: 'Concept, alleen voor jou' }),
+        h('option', { value: 'live', text: 'Op de site' }),
+      ]),
+      body: h('textarea', { rows: '4', maxlength: '4000', style: 'min-height:110px', text: ev.body, placeholder: 'Een paar regels over de avond.' }),
+    };
+    f.status.value = ev.status;
+
+    const photos = h('ol', { class: 'photos' });
+    const paintPhotos = () => {
+      photos.textContent = '';
+      ev.photos.forEach((p, k) => {
+        const alt = h('input', { type: 'text', maxlength: '200', value: p.alt || '', placeholder: 'Bijv. dansvloer rond middernacht' });
+        alt.addEventListener('change', async () => {
+          try {
+            const fresh = await api(`events/${ev.id}/photos/${encodeURIComponent(p.id)}`, { method: 'PUT', body: { alt: alt.value } });
+            Object.assign(ev, fresh);
+            evStatus('Beschrijving opgeslagen.');
+          } catch (ex) { if (ex.status !== 401) evStatus(`Dat lukte niet: ${ex.message}`); }
+        });
+        const move = (d) => async () => {
+          const ids = ev.photos.map((x) => x.id);
+          [ids[k], ids[k + d]] = [ids[k + d], ids[k]];
+          try {
+            const fresh = await api(`events/${ev.id}/photos/order`, { method: 'POST', body: { ids } });
+            Object.assign(ev, fresh);
+            paintPhotos();
+          } catch (ex) { if (ex.status !== 401) evStatus(`Dat lukte niet: ${ex.message}`); }
+        };
+        photos.append(h('li', { class: 'photo' },
+          h('img', { src: p.thumb || p.full, alt: '', loading: 'lazy' }),
+          h('label', { class: 'field' }, h('span', { text: `Beschrijving foto ${k + 1}` }), alt),
+          h('div', { class: 'photo__bar' },
+            h('div', { class: 'photo__move' },
+              iconBtn(ICON.left, 'Eerder zetten', move(-1), k === 0, 'left'),
+              iconBtn(ICON.right, 'Later zetten', move(1), k === ev.photos.length - 1, 'right')),
+            h('a', { class: 'link-btn', href: `${p.full}?download=slocabaia-${ev.slug}-${String(k + 1).padStart(2, '0')}.jpg`, download: true, text: 'Bekijk' }),
+            h('button', { class: 'link-btn link-btn--danger', type: 'button', text: 'Verwijderen', onclick: async () => {
+              if (!(await confirmDialog('Foto verwijderen?', 'De foto verdwijnt van de site en kan niet meer worden gedownload.', 'Verwijderen'))) return;
+              try {
+                const fresh = await api(`events/${ev.id}/photos/${encodeURIComponent(p.id)}`, { method: 'DELETE' });
+                Object.assign(ev, fresh);
+                paintPhotos();
+                evStatus('Foto verwijderd.');
+              } catch (ex) { if (ex.status !== 401) evStatus(`Dat lukte niet: ${ex.message}`); }
+            } }))));
+      });
+    };
+    paintPhotos();
+
+    const file = h('input', { class: 'sr', type: 'file', accept: 'image/*', multiple: true });
+    file.addEventListener('change', async (e) => {
+      const files = [...e.target.files];
+      e.target.value = '';
+      if (!files.length) return;
+      const take = files.slice(0, Math.max(0, EVENTS.limits.photos - ev.photos.length));
+      let added = 0;
+      const failed = [];
+      for (const [k, item] of take.entries()) {
+        evStatus(`Foto ${k + 1} van ${take.length} klaarmaken en uploaden...`);
+        try {
+          /* 2200px is het bestand dat bezoekers downloaden, 800px de tegel in het raster */
+          const big = await toJpeg(item, 2200);
+          const small = big.w > 800 || big.h > 800 ? await toJpeg(item, 800) : null;
+          const fresh = await api(`events/${ev.id}/photos`, { method: 'POST', body: { image: big.data, thumb: small ? small.data : undefined, alt: '' } });
+          Object.assign(ev, fresh);
+          added += 1;
+          paintPhotos();
+        } catch (ex) {
+          if (ex.status === 401) return;
+          failed.push(`${item.name}: ${ex.message}`);
+        }
+      }
+      const parts = [];
+      if (added) parts.push(`${added === 1 ? 'Foto' : `${added} foto's`} toegevoegd.`);
+      if (files.length > take.length) parts.push(`${files.length - take.length} pasten er niet meer bij (${EVENTS.limits.photos} per event).`);
+      if (failed.length) parts.push(`Niet gelukt: ${failed.join('; ')}`);
+      evStatus(parts.join(' '));
+      renderEvents();
+    });
+
+    const save = async () => {
+      try {
+        const fresh = await api(`events/${ev.id}`, {
+          method: 'PUT',
+          body: { title: f.title.value, held_on: f.held.value, place: f.place.value, body: f.body.value, status: f.status.value },
+        });
+        Object.assign(ev, fresh);
+        evStatus(`"${fresh.title}" opgeslagen.`);
+        toast(fresh.status === 'live' && fresh.photos.length ? 'Opgeslagen en op de site.' : 'Opgeslagen.');
+        await loadEvents();
+      } catch (ex) { if (ex.status !== 401) evStatus(`Dat lukte niet: ${ex.message}`); }
+    };
+
+    const move = (d) => async () => {
+      const ids = EVENTS.rows.map((x) => x.id);
+      [ids[i], ids[i + d]] = [ids[i + d], ids[i]];
+      try {
+        EVENTS.rows = await api('events/order', { method: 'POST', body: { ids } });
+        renderEvents();
+      } catch (ex) { if (ex.status !== 401) evStatus(`Dat lukte niet: ${ex.message}`); }
+    };
+
+    const first = ev.photos[0];
+    const warn = !ev.photos.length ? 'Zonder foto’s niet op de site' : ev.status === 'draft' ? 'Concept' : '';
+    return h('details', { class: 'row', id: `ev-${ev.id}`, open: isOpen || undefined },
+      h('summary', {},
+        first ? h('img', { class: 'row__thumb', src: first.thumb || first.full, alt: '', loading: 'lazy' })
+              : h('span', { class: 'row__thumb row__thumb--empty', text: 'geen' }),
+        h('span', { class: 'row__t' },
+          h('strong', { text: ev.title }),
+          h('span', { text: [onDay(ev.held_on) || 'geen datum', ev.place, `${ev.photos.length} foto's`, warn].filter(Boolean).join(' · ') })),
+        tag(ev.status === 'live' ? PROD_TAG.live : PROD_TAG.draft)),
+      h('div', { class: 'row__body' },
+        h('div', { class: 'fieldrow' },
+          h('label', { class: 'field' }, h('span', { text: 'Titel' }), f.title),
+          h('label', { class: 'field' }, h('span', { text: 'Datum' }), f.held),
+          h('label', { class: 'field' }, h('span', { text: 'Waar' }), f.place),
+          h('label', { class: 'field' }, h('span', { text: 'Status' }), f.status)),
+        h('label', { class: 'field' }, h('span', { text: 'Tekst erbij' }), f.body),
+        h('div', {}, h('h3', { text: `Foto's` }),
+          h('p', { class: 'sub', style: 'margin:4px 0 8px', text: `Bezoekers kunnen elke foto los downloaden. Maximaal ${EVENTS.limits.photos} per event.` }),
+          photos,
+          h('label', { class: 'pill pill--ghost pill--small', style: 'margin-top:4px', text: `Foto's toevoegen` }, file)),
+        h('div', { class: 'row__foot' },
+          h('div', { class: 'actions' },
+            h('button', { class: 'pill pill--small', type: 'button', text: 'Opslaan', onclick: save }),
+            h('div', { class: 'photo__move' },
+              iconBtn(ICON.up, 'Eerder op de site', move(-1), i === 0, 'up'),
+              iconBtn(ICON.down, 'Later op de site', move(1), i === total - 1, 'down'))),
+          h('button', { class: 'link-btn link-btn--danger', type: 'button', text: 'Event verwijderen', onclick: async () => {
+            if (!(await confirmDialog('Event verwijderen?', `"${ev.title}" en alle foto's worden gewist. Dit kan niet worden teruggedraaid.`, 'Verwijderen'))) return;
+            try {
+              await api(`events/${ev.id}`, { method: 'DELETE' });
+              toast('Event verwijderd.');
+              await loadEvents();
+            } catch (ex) { if (ex.status !== 401) evStatus(`Dat lukte niet: ${ex.message}`); }
+          } }))));
+  }
+
+  $('#ev-new').addEventListener('click', async () => {
+    try {
+      const ev = await api('events', { method: 'POST', body: { title: 'Nieuw event', status: 'draft' } });
+      await loadEvents();
+      const row = document.getElementById(`ev-${ev.id}`);
+      if (row) { row.open = true; row.scrollIntoView({ block: 'center' }); row.querySelector('input').focus(); }
+      evStatus('Vul de titel en de datum in, voeg foto’s toe en zet de status op "op de site".');
+    } catch (ex) { if (ex.status !== 401) evStatus(`Dat lukte niet: ${ex.message}`); }
+  });
 
   /* ------------------------------------------------------------------ website: hero */
   let site = null;
@@ -1605,6 +2523,8 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
   /* ------------------------------------------------------------------ messages */
   let ME = null;
   let MSGS = [];
+  let ORDERS = [];        /* the newest paid orders, for the bell */
+  let unreadOrders = 0;
   let openId = null;
   let scrollToOpen = false;
   let lastUnread = null;
@@ -1633,26 +2553,45 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
 
   function setBadge(n) {
     n = Number(n) || 0;
+    const all = n + unreadOrders; /* the bell carries messages and new orders together */
     const b = $('#bell-n');
-    b.hidden = !n;
-    b.textContent = n > 9 ? '9+' : String(n);
-    $('#bell').setAttribute('aria-label', n ? `Meldingen, ${n} ongelezen ${n === 1 ? 'bericht' : 'berichten'}` : 'Meldingen');
+    b.hidden = !all;
+    b.textContent = all > 9 ? '9+' : String(all);
+    $('#bell').setAttribute('aria-label', all ? `Meldingen, ${all} nieuw` : 'Meldingen');
     const t = $('#tab-n');
     t.hidden = !n;
     t.textContent = String(n);
-    if ('setAppBadge' in navigator) (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => {});
-    /* a message that came in while the dashboard was open */
-    if (lastUnread !== null && n > lastUnread) {
+    const so = $('#tab-shop-n');
+    so.hidden = !unreadOrders;
+    so.textContent = String(unreadOrders);
+    if ('setAppBadge' in navigator) (all ? navigator.setAppBadge(all) : navigator.clearAppBadge()).catch(() => {});
+    /* something that came in while the dashboard was open */
+    if (lastUnread !== null && all > lastUnread) {
+      const order = ORDERS.find((o) => !o.read_at);
       const newest = MSGS.find((m) => !m.read_at && !m.spam);
-      toast(newest ? `Nieuw bericht van ${newest.name}` : 'Nieuw bericht');
+      if (unreadOrders && order) toast(`Nieuwe bestelling ${order.ref} van ${order.name}`);
+      else toast(newest ? `Nieuw bericht van ${newest.name}` : 'Nieuw bericht');
     }
-    lastUnread = n;
+    lastUnread = all;
+  }
+
+  /* after reading an order the bell and the tab count have to catch up */
+  async function refreshCounts() {
+    try {
+      const d = await api('messages');
+      MSGS = d.rows;
+      ORDERS = d.orders || [];
+      unreadOrders = Number(d.unreadOrders) || 0;
+      setBadge(d.unread);
+    } catch { /* the counts catch up on the next poll */ }
   }
 
   async function loadMessages() {
     try {
       const d = await api('messages');
       MSGS = d.rows;
+      ORDERS = d.orders || [];
+      unreadOrders = Number(d.unreadOrders) || 0;
       setBadge(d.unread);
       $('#msg-sub').textContent = d.total ? `${fmt(d.total)} ${d.total === 1 ? 'bericht' : 'berichten'}, ${fmt(d.unread)} ongelezen` : '';
       $('#gmail-inbox').href = gmail('');
@@ -1753,7 +2692,17 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
     const list = $('#pop-list');
     list.textContent = '';
     const items = MSGS.filter((m) => !m.spam).slice(0, 6);
-    $('#pop-empty').hidden = items.length > 0;
+    /* orders first: those are the ones that need packing */
+    for (const o of ORDERS.slice(0, 4)) {
+      list.append(h('li', { class: `pop__item${o.read_at ? '' : ' is-unread'}` },
+        h('button', { class: 'pop__open', type: 'button', onclick: () => { closePop(); route('shop'); setTimeout(() => {
+          const row = document.getElementById(`ord-${o.id}`);
+          if (row) { row.open = true; row.scrollIntoView({ block: 'center' }); }
+        }, 400); } },
+          h('span', { class: 'pop__who' }, h('strong', { text: `Bestelling ${o.ref}` }), h('span', { class: 'pop__when', text: o.paid_at ? ago(o.paid_at) : '' })),
+          h('span', { class: 'pop__snip', text: `${o.name} · ${euro(o.total_cents)}` }))));
+    }
+    $('#pop-empty').hidden = items.length > 0 || ORDERS.length > 0;
     for (const m of items) {
       list.append(h('li', { class: `pop__item${m.read_at ? '' : ' is-unread'}` },
         h('button', { class: 'pop__open', type: 'button', onclick: () => { closePop(); route(`messages/${m.id}`); } },
@@ -1850,7 +2799,7 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
     } else if (Notification.permission === 'denied') {
       text = 'Meldingen zijn geblokkeerd voor deze site. Zet ze aan in de instellingen van je telefoon of browser en kom dan hier terug.';
     } else if (Notification.permission === 'granted' && (await pushSubscription(false).catch(() => null))) {
-      text = 'Meldingen staan aan op dit apparaat: bij elk nieuw bericht via de site krijg je een melding, met een knop naar Gmail om te antwoorden.';
+      text = 'Meldingen staan aan op dit apparaat. Je krijgt er een bij een nieuwe bestelling, een nieuw lid, een bericht via de site en als een hero-video klaar is met verwerken.';
       acts.push(h('button', { class: 'pill pill--ghost pill--small', type: 'button', text: 'Stuur een testmelding', onclick: async () => {
         try {
           const r = await api('push/test', { method: 'POST' });
@@ -1859,7 +2808,7 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
       } }));
       acts.push(h('button', { class: 'link-btn', type: 'button', text: 'Uitzetten', onclick: async () => { await disablePush(); toast('Meldingen staan uit op dit apparaat.'); paintPushCard(); } }));
     } else {
-      text = 'Krijg een melding op dit apparaat zodra er een bericht via de site binnenkomt, met een knop om het in Gmail te beantwoorden.';
+      text = 'Krijg een melding op dit apparaat zodra iemand iets koopt, lid wordt of een bericht stuurt via de site.';
       acts.push(h('button', { class: 'pill pill--small', type: 'button', text: 'Meldingen aanzetten', onclick: async (e) => {
         e.currentTarget.disabled = true;
         await enablePush().catch((err) => toast(err.message));
@@ -1923,7 +2872,7 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
   function openInstallSheet() {
     const d = openSheet('install',
       h('div', { class: 'sheet__head' }, h('img', { class: 'sheet__app', src: '/admin/icons/icon-192.png', alt: '' }), h('h2', { id: 'sheet-title', text: 'Zet het dashboard op je telefoon' })),
-      h('p', { class: 'sheet__lead', text: 'Dan open je het met één tik vanaf je beginscherm, met het Slocabaia-logo als icoon. En je krijgt een melding bij elk nieuw bericht.' }),
+      h('p', { class: 'sheet__lead', text: 'Dan open je het met één tik vanaf je beginscherm, met het Slocabaia-logo als icoon. En je krijgt een melding bij elke bestelling, elk nieuw lid en elk bericht.' }),
       h('div', { class: 'seg sheet__tabs', role: 'tablist', 'aria-label': 'Soort telefoon' },
         h('button', { type: 'button', role: 'tab', 'data-os': 'ios', text: 'iPhone' }),
         h('button', { type: 'button', role: 'tab', 'data-os': 'android', text: 'Android' })),
@@ -2015,6 +2964,7 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
     $('#testmode').hidden = ME.mail.mode !== 'log';
     loaded.clear();
     lastUnread = null;
+    unreadOrders = Number(ME.orders) || 0;
     setBadge(ME.unread);
     route(location.hash.slice(1));
     syncPush();

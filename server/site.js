@@ -2,23 +2,23 @@
 // near the bottom. The choices live in the `site` table, uploaded files in DATA_DIR/media, and
 // renderIndex() writes them into index.html between the hero and gallery markers.
 import { spawn, spawnSync } from 'node:child_process';
-import { createWriteStream, mkdirSync, readdirSync, readFileSync, openSync, readSync, closeSync } from 'node:fs';
+import { createWriteStream, readFileSync, openSync, readSync, closeSync } from 'node:fs';
 import { rm, writeFile, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { randomBytes } from 'node:crypto';
 import { Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { HttpError } from './http.js';
+import { esc, newId, oneLine } from './util.js';
+import { jpegFromDataUrl, jpegSize } from './media.js';
+
+export { jpegSize };
 
 const MAX_VIDEO_MB = 1024;
 const MAX_VIDEO_BYTES = MAX_VIDEO_MB * 1024 * 1024;
 const MAX_SECONDS = 90;
 const MAX_PHOTOS = 16;
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-const MAX_IMAGE_SIDE = 6000;
 const MAX_PIXELS = 3840 * 2160; // 4K; a larger claimed picture is refused before it is decoded
 const VIDEO_CODECS = new Set(['h264', 'hevc', 'vp8', 'vp9', 'av1', 'prores', 'mpeg4']);
-const MEDIA_RE = /^[a-z0-9][a-z0-9-]{0,80}\.(?:jpg|mp4)$/;
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 const FFPROBE = process.env.FFPROBE_PATH || 'ffprobe';
 
@@ -39,79 +39,6 @@ const DEFAULT_LOOKS = [
   ['look-1', 'Model in a light grey Slocabaia sweatshirt and joggers, pulling the collar up over her face'],
   ['look-3', 'Model pulling a white Slocabaia T-shirt up over her head'],
 ];
-
-const esc = (s) =>
-  String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const cleanAlt = (v) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, 200);
-const newId = () => randomBytes(6).toString('hex');
-
-/** width and height from a JPEG's SOF marker, or null when the bytes are not a readable JPEG */
-export function jpegSize(buf) {
-  if (!buf || buf.length < 4 || buf[0] !== 0xff || buf[1] !== 0xd8 || buf[2] !== 0xff) return null;
-  let i = 2;
-  while (i + 9 < buf.length) {
-    if (buf[i] !== 0xff) return null;
-    const m = buf[i + 1];
-    if (m === 0xff) {
-      i += 1; // fill byte
-      continue;
-    }
-    if (m === 0x01 || (m >= 0xd0 && m <= 0xd8)) {
-      i += 2; // markers without a length
-      continue;
-    }
-    const len = buf.readUInt16BE(i + 2);
-    if (len < 2) return null;
-    // SOF0 to SOF15, except DHT (C4), JPG (C8) and DAC (CC)
-    if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) {
-      return { h: buf.readUInt16BE(i + 5), w: buf.readUInt16BE(i + 7) };
-    }
-    i += 2 + len;
-  }
-  return null;
-}
-
-/** The dashboard resizes every photo to a JPEG in the browser; the server accepts nothing else. */
-function jpegFromDataUrl(value, what) {
-  const m = /^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/.exec(String(value ?? ''));
-  if (!m) throw new HttpError(400, `${what}: send a JPEG.`);
-  const buf = Buffer.from(m[1], 'base64');
-  if (buf.length > MAX_IMAGE_BYTES) throw new HttpError(413, `${what} is too large.`);
-  const size = jpegSize(buf);
-  const end = jpegEnd(buf);
-  if (!size || end < 0 || size.w < 16 || size.h < 16 || size.w > MAX_IMAGE_SIDE || size.h > MAX_IMAGE_SIDE) {
-    throw new HttpError(400, `${what} is not a readable JPEG.`);
-  }
-  // anything glued on after the end-of-image marker is dropped, never stored or served
-  return { buf: buf.subarray(0, end), ...size };
-}
-
-/** the offset just past the EOI marker that closes the image data, or -1 without a scan and EOI */
-function jpegEnd(buf) {
-  let i = 2;
-  while (i + 4 <= buf.length) {
-    if (buf[i] !== 0xff) return -1;
-    const m = buf[i + 1];
-    if (m === 0xff) {
-      i += 1;
-      continue;
-    }
-    if (m === 0x01 || (m >= 0xd0 && m <= 0xd8)) {
-      i += 2;
-      continue;
-    }
-    const len = buf.readUInt16BE(i + 2);
-    if (len < 2) return -1;
-    if (m === 0xda) {
-      // entropy-coded data can hold 0xFF only as FF00 or a restart marker, so the first FFD9
-      // after the first scan is the real end of the image
-      const eoi = buf.indexOf(Buffer.from([0xff, 0xd9]), i + 2 + len);
-      return eoi < 0 ? -1 : eoi + 2;
-    }
-    i += 2 + len;
-  }
-  return -1;
-}
 
 /** 'mov' for MP4/MOV (QuickTime atoms), 'matroska' for WebM/MKV, null for anything else */
 function sniffVideo(file) {
@@ -161,11 +88,9 @@ function run(bin, args, { timeout = 60e3, onProgress } = {}) {
   });
 }
 
-export function createSite({ db, root, dataDir }) {
-  const mediaDir = join(dataDir, 'media');
-  const tmpDir = join(dataDir, 'tmp');
-  mkdirSync(mediaDir, { recursive: true });
-  mkdirSync(tmpDir, { recursive: true });
+export function createSite({ db, root, media, onNotice = () => {} }) {
+  const mediaDir = media.dir;
+  const tmpDir = media.tmpDir;
 
   const canVideo = works(FFMPEG) && works(FFPROBE);
   const filters = canVideo ? String(spawnSync(FFMPEG, ['-hide_banner', '-filters'], { encoding: 'utf8', timeout: 10e3 }).stdout || '') : '';
@@ -203,21 +128,11 @@ export function createSite({ db, root, dataDir }) {
     return Array.isArray(g) ? g : defaultLooks.map((p) => ({ ...p }));
   };
 
-  /** only files this module wrote (under /media/) are ever deleted; the originals in img/ stay */
-  const ownedFiles = (o) =>
-    ['poster', 'v720', 'v1080', 'src', 'thumb']
-      .map((k) => o?.[k])
-      .filter((u) => typeof u === 'string' && u.startsWith('/media/'))
-      .map((u) => u.slice(7))
-      .filter((n) => MEDIA_RE.test(n));
-  const removeFiles = (o) => Promise.all(ownedFiles(o).map((n) => rm(join(mediaDir, n), { force: true })));
-
-  // On boot: half-finished uploads, and media nothing points to any more (a crash mid-processing)
-  for (const f of readdirSync(tmpDir)) rm(join(tmpDir, f), { force: true, recursive: true }).catch(() => {});
-  const keep = new Set([...ownedFiles(hero()), ...gallery().flatMap(ownedFiles)]);
-  for (const f of readdirSync(mediaDir)) {
-    if (!keep.has(f)) rm(join(mediaDir, f), { force: true, recursive: true }).catch(() => {});
-  }
+  /** only files the dashboard uploaded (under /media/) are ever deleted; img/ holds originals */
+  const ownedFiles = media.names;
+  const removeFiles = media.remove;
+  /** everything the hero and the photo row still point at; index.js sweeps the rest on boot */
+  const mediaNames = () => [...ownedFiles(hero()), ...gallery().flatMap(ownedFiles)];
 
   /* ------------------------------------------------------------ hero film */
 
@@ -350,6 +265,7 @@ export function createSite({ db, root, dataDir }) {
       });
       await removeFiles(prev);
       job = { id, state: 'done', progress: 1, error: null };
+      onNotice({ title: 'Slocabaia', body: 'De nieuwe video staat op de site.', url: '/admin/#site', tag: 'hero' });
     } catch (err) {
       console.error('[hero] video processing failed:', err.message);
       job = {
@@ -358,6 +274,7 @@ export function createSite({ db, root, dataDir }) {
         progress: 0,
         error: err instanceof HttpError ? err.message : 'The video could not be processed. Try an MP4 or MOV straight from a phone or camera.',
       };
+      onNotice({ title: 'Slocabaia', body: 'Het verwerken van de video is mislukt. Kijk in het dashboard.', url: '/admin/#site', tag: 'hero' });
       await Promise.all(Object.values(files).map((n) => rm(at(n), { force: true })));
     } finally {
       await rm(tmp, { force: true });
@@ -403,7 +320,7 @@ export function createSite({ db, root, dataDir }) {
     const img = jpegFromDataUrl(body.image, 'The photo');
     const th = body.thumb ? jpegFromDataUrl(body.thumb, 'The small version') : null;
     const id = `p-${newId()}`;
-    const item = { id, src: `/media/${id}.jpg`, thumb: null, w: img.w, h: img.h, tw: null, alt: cleanAlt(body.alt) };
+    const item = { id, src: `/media/${id}.jpg`, thumb: null, w: img.w, h: img.h, tw: null, alt: oneLine(body.alt) };
     await writeFile(join(mediaDir, `${id}.jpg`), img.buf);
     if (th && th.w < img.w) {
       await writeFile(join(mediaDir, `${id}-sm.jpg`), th.buf);
@@ -425,7 +342,7 @@ export function createSite({ db, root, dataDir }) {
     const list = gallery();
     const p = list.find((x) => x.id === id);
     if (!p) throw new HttpError(404, 'Photo not found.');
-    p.alt = cleanAlt(body.alt);
+    p.alt = oneLine(body.alt);
     save('gallery', list);
     return { ok: true, gallery: list };
   }
@@ -500,7 +417,8 @@ ${li}
   return {
     canVideo,
     renderIndex,
-    mediaFile: (name) => (MEDIA_RE.test(name) ? join(mediaDir, name) : null),
+    mediaFile: media.file,
+    mediaNames,
     state: () => ({
       hero: hero(),
       gallery: gallery(),

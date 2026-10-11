@@ -1,4 +1,5 @@
 // Email and small-page rendering.
+// (The shop emails and the thank-you page are at the bottom.)
 // Newsletters are written in a tiny, safe markdown subset. Everything typed is HTML-escaped
 // first; only these become markup: blank-line paragraphs, "# " and "## " headings,
 // "- " lists, **bold** and [label](https://...) links (http, https and mailto only).
@@ -101,13 +102,14 @@ export function renderNewsletter({ subject, preheader = '', body = '', unsubscri
   return { html, text };
 }
 
-export function renderConfirmEmail({ to, url }) {
+export function renderConfirmEmail({ to, url, name = '' }) {
   const u = esc(url);
   const html = shell({
     title: 'Confirm your membership',
     preheader: 'One tap and you are in.',
     inner:
       `<h1 style="margin:0 0 18px;font-family:${FONT};font-size:28px;line-height:1.1;font-weight:900;text-transform:uppercase;color:${INK}">Almost in</h1>` +
+      (name ? `<p style="margin:0 0 18px;color:${BODY}">Hi ${esc(name)},</p>` : '') +
       `<p style="margin:0 0 18px;color:${BODY}">Tap the button to confirm that <strong style="color:${INK}">${esc(to)}</strong> may receive drops, events, collaborations and creative opportunities from The House of Slocabaia.</p>` +
       `<p style="margin:26px 0 22px"><a href="${u}" style="display:inline-block;background:${EMBER};color:${VOID};font-family:${FONT};font-size:14px;font-weight:700;text-decoration:none;padding:13px 24px;border-radius:999px">Confirm membership</a></p>` +
       `<p style="margin:0;font-size:13px;color:${ASH}">Did not sign up? Ignore this email and nothing happens.</p>`,
@@ -154,4 +156,96 @@ h1{font-size:28px;line-height:1.1;text-transform:uppercase;letter-spacing:.02em;
 button{font:700 14px system-ui,sans-serif;background:#ff5e14;color:#050505;border:0;border-radius:999px;padding:12px 22px;cursor:pointer}
 button:focus-visible,a:focus-visible{outline:2px solid #ff5e14;outline-offset:3px}a{color:#8c877e}</style></head>
 <body><main><p class="k">Slocabaia</p>${msg}<p><a href="/">Back to the site</a></p></main></body></html>`;
+}
+
+/* ------------------------------------------------------------------ shop */
+
+const money = (c) => `&euro; ${(Math.round(Number(c) || 0) / 100).toFixed(2).replace('.', ',')}`;
+
+function orderLines(order) {
+  const rows = order.items
+    .map(
+      (i) =>
+        `<tr><td style="padding:6px 0;color:${BODY}">${esc(i.qty)}x ${esc(i.name)}${i.variant ? ` <span style="color:${ASH}">(${esc(i.variant)})</span>` : ''}</td>` +
+        `<td align="right" style="padding:6px 0;color:${INK};white-space:nowrap">${money(i.price_cents * i.qty)}</td></tr>`,
+    )
+    .join('');
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;font-size:15px">
+    ${rows}
+    <tr><td style="padding:10px 0 0;border-top:1px solid #2a2a2a;color:${BODY}">Shipping</td><td align="right" style="padding:10px 0 0;border-top:1px solid #2a2a2a;color:${INK}">${order.shipping_cents ? money(order.shipping_cents) : 'free'}</td></tr>
+    <tr><td style="padding:6px 0 0;color:${INK};font-weight:bold">Total</td><td align="right" style="padding:6px 0 0;color:${INK};font-weight:bold">${money(order.total_cents)}</td></tr>
+  </table>`;
+}
+
+const addressBlock = (order) =>
+  order.country === 'PICKUP'
+    ? 'Pick up in person'
+    : [order.name, order.street, `${order.postcode} ${order.city}`.trim(), order.country].filter(Boolean).map(esc).join('<br>');
+
+/** the receipt the buyer gets as soon as the payment comes through */
+export function renderOrderEmail({ order, siteUrl }) {
+  const html = shell({
+    title: `Your Slocabaia order ${order.ref}`,
+    preheader: `We got your order ${order.ref}.`,
+    inner:
+      `<p style="margin:0 0 8px;font-family:${FONT};font-size:12px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:${EMBER}">Order ${esc(order.ref)}</p>` +
+      `<h1 style="margin:0 0 18px;font-family:${FONT};font-size:26px;line-height:1.15;font-weight:900;text-transform:uppercase;color:${INK}">Thank you, ${esc(String(order.name).split(' ')[0])}</h1>` +
+      `<p style="margin:0 0 18px;color:${BODY}">Your payment came through and your order is with us.</p>` +
+      orderLines(order) +
+      `<p style="margin:0 0 6px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:${EMBER}">Going to</p>` +
+      `<p style="margin:0 0 22px;color:${BODY}">${addressBlock(order)}</p>` +
+      `<p style="margin:0;font-size:13px;color:${ASH}">Questions about this order? Reply to this email and keep ${esc(order.ref)} in it.</p>`,
+    footer: LEGAL,
+  });
+  const lines = order.items.map((i) => `${i.qty}x ${i.name}${i.variant ? ` (${i.variant})` : ''}`).join('\n');
+  const text =
+    `Thank you, ${order.name}.\n\nOrder ${order.ref}\n\n${lines}\n\nShipping: ${(order.shipping_cents / 100).toFixed(2)}\n` +
+    `Total: ${(order.total_cents / 100).toFixed(2)}\n\nQuestions? Reply to this email.\n${siteUrl}\n`;
+  return { to: order.email, subject: `Your Slocabaia order ${order.ref}`, html, text };
+}
+
+/** the copy that lands in the Slocabaia inbox, in Dutch, with the buyer as Reply-To */
+export function renderOrderAlert({ to, order, url }) {
+  const html = shell({
+    title: `Nieuwe bestelling ${order.ref}`,
+    preheader: `${order.name} bestelde voor ${(order.total_cents / 100).toFixed(2)} euro.`,
+    inner:
+      `<p style="margin:0 0 8px;font-family:${FONT};font-size:12px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:${EMBER}">Bestelling ${esc(order.ref)}</p>` +
+      `<h1 style="margin:0 0 6px;font-family:${FONT};font-size:24px;line-height:1.2;font-weight:900;color:${INK}">${esc(order.name)}</h1>` +
+      `<p style="margin:0 0 18px"><a href="mailto:${esc(order.email)}" style="color:${EMBER}">${esc(order.email)}</a>${order.phone ? ` &middot; ${esc(order.phone)}` : ''}</p>` +
+      orderLines(order) +
+      `<p style="margin:0 0 6px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:${EMBER}">Verzenden naar</p>` +
+      `<p style="margin:0 0 18px;color:${BODY}">${addressBlock(order)}</p>` +
+      (order.note ? `<p style="margin:0 0 18px;color:${BODY}"><strong style="color:${INK}">Notitie:</strong> ${esc(order.note)}</p>` : '') +
+      `<p style="margin:0;font-size:13px;color:${ASH}">Beantwoord deze mail om de klant te antwoorden. <a href="${esc(url)}" style="color:${ASH}">Open in het dashboard</a></p>`,
+    footer: LEGAL,
+  });
+  const lines = order.items.map((i) => `${i.qty}x ${i.name}${i.variant ? ` (${i.variant})` : ''}`).join('\n');
+  const text = `Nieuwe bestelling ${order.ref}\n\n${order.name} <${order.email}>\n\n${lines}\n\nTotaal: ${(order.total_cents / 100).toFixed(2)}\nDashboard: ${url}\n`;
+  return { to, replyTo: order.email, subject: `Bestelling ${order.ref} van ${order.name}`, html, text };
+}
+
+/** the page people land on when they come back from Mollie */
+export function renderOrderPage({ order, siteUrl }) {
+  const head = !order
+    ? { title: 'Order not found', body: '<p>This link is old or incomplete. Check the email we sent, or write to us and we look it up.</p>' }
+    : order.status === 'paid' || order.status === 'shipped'
+      ? {
+          title: 'Thank you',
+          body:
+            `<p>Your payment came through. Order <b>${esc(order.ref)}</b> is with us and a receipt is on its way to ${esc(order.email)}.</p>` +
+            `<p class="sum">${order.items.map((i) => `${esc(i.qty)}x ${esc(i.name)}${i.variant ? ` (${esc(i.variant)})` : ''}`).join('<br>')}<br><b>Total ${money(order.total_cents)}</b></p>`,
+        }
+      : order.status === 'open'
+        ? { title: 'Waiting for the bank', body: `<p>Order <b>${esc(order.ref)}</b> is in, but the payment has not come through yet. Refresh this page in a minute. You also get an email as soon as it lands.</p>` }
+        : { title: 'Payment did not go through', body: `<p>Order <b>${esc(order.ref)}</b> was not paid, so nothing was charged and nothing was sent. You can order again whenever you want.</p>` };
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><title>Slocabaia</title><style>
+body{margin:0;min-height:100svh;display:grid;place-items:center;background:#050505;color:#f2efe8;font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;padding:24px;box-sizing:border-box}
+main{max-width:460px}.k{letter-spacing:.3em;font-size:11px;text-transform:uppercase;color:#8c877e;margin:0 0 18px}
+h1{font-size:28px;line-height:1.1;text-transform:uppercase;letter-spacing:.02em;margin:0 0 12px}p{color:#cfcabf;margin:0 0 20px}
+.sum{padding:14px 16px;border:1px solid rgb(242 239 232 / .14);border-radius:14px;color:#f2efe8}
+a{color:#ff5e14}a.btn{display:inline-block;background:#ff5e14;color:#050505;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:999px}
+</style></head><body><main><p class="k">Slocabaia</p><h1>${esc(head.title)}</h1>${head.body}
+<p><a class="btn" href="${esc(siteUrl)}/#shop">Back to the shop</a></p></main></body></html>`;
 }
