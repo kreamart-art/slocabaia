@@ -346,6 +346,19 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
 .help strong{color:var(--text)}
 .help code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px;color:var(--text)}
 
+/* ---------- payments card ---------- */
+.paylist{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.paylist li{
+  padding:5px 11px;border-radius:999px;border:1px solid var(--line);
+  font-size:13px;color:var(--text-2);background:var(--page);
+}
+.pay-how{margin-top:12px}
+.pay-how > summary{cursor:pointer;color:var(--text-2);font-size:13.5px}
+.pay-how ol{margin:0 0 8px;padding-left:20px}
+.pay-how li{margin:0 0 8px;font-size:14px;line-height:1.6;color:var(--text-2)}
+.pay-how p{margin:0;font-size:13.5px;color:var(--muted)}
+.pay-how code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px;color:var(--text)}
+
 /* ---------- rows: a product, an event or an order, foldable ---------- */
 .rows{list-style:none;margin:0;padding:0;display:grid;gap:10px}
 .row{border:1px solid var(--line-soft);border-radius:14px;background:var(--page);overflow:hidden}
@@ -661,15 +674,46 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
     <section id="view-shop" role="tabpanel" aria-labelledby="tab-shop" hidden>
       <div class="notice" id="s-nomollie" hidden>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.8 15 14H1z"/><path d="M8 6.2v3.6M8 11.6v.4"/></svg>
-        <span><strong>Er kan nog niet afgerekend worden.</strong> De shop staat op de site, maar zonder
-        Mollie-sleutel kan niemand betalen. Vraag Karim om <code>MOLLIE_API_KEY</code> in te stellen,
-        daarna werkt afrekenen met iDEAL meteen.</span>
+        <span><strong>Er kan nog niet afgerekend worden.</strong> Je producten staan wel op de site,
+        maar wie op kopen klikt ziet dat bestellen nog niet kan. Hieronder bij Betalingen staat in zes
+        stappen wat er moet gebeuren.</span>
       </div>
       <div class="notice" id="s-testmollie" hidden>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.8 15 14H1z"/><path d="M8 6.2v3.6M8 11.6v.4"/></svg>
-        <span><strong>Mollie staat in testmodus.</strong> Bestellingen werken, maar er wordt geen echt geld
-        afgeschreven. Zet de live-sleutel in Mollie om echt te verkopen.</span>
+        <span><strong>Mollie staat in testmodus.</strong> Bestellen werkt helemaal, maar er wordt geen
+        echt geld afgeschreven. Goed om zelf een keer door te lopen; wissel daarna de sleutel om voor
+        de live-sleutel om echt te verkopen.</span>
       </div>
+
+      <section class="card" id="pay-card" style="margin-bottom:14px">
+        <div class="card__head">
+          <div><h2>Betalingen</h2><p class="card__sub" id="pay-sub">Controleren...</p></div>
+          <button class="pill pill--ghost pill--small" type="button" id="pay-check">Controleer verbinding</button>
+        </div>
+        <p class="saved" id="pay-status" role="status"></p>
+        <ul class="paylist" id="pay-methods" hidden></ul>
+        <details class="pay-how" id="pay-how" hidden>
+          <summary>Zo zet je Mollie aan (eenmalig)</summary>
+          <div class="help__in" style="padding:10px 0 0">
+            <ol>
+              <li>Maak een account op <a href="https://www.mollie.com/nl" target="_blank" rel="noopener">mollie.com</a>.
+              Je hebt het KvK-nummer (80563236) en de zakelijke bankrekening nodig. Mollie controleert
+              de gegevens; dat duurt meestal een dag.</li>
+              <li>Voeg in Mollie een website toe met het adres <code>https://slocabaia.com</code>.</li>
+              <li>Zet de betaalmethodes aan die je wilt: iDEAL in elk geval, verder bijvoorbeeld
+              Bancontact, creditcard of PayPal.</li>
+              <li>Ga naar Ontwikkelaars, API-sleutels en kopieer de sleutel. Een sleutel die begint met
+              <code>test_</code> is om te oefenen (er gaat geen echt geld heen en weer), een sleutel met
+              <code>live_</code> is echt.</li>
+              <li>Geef die sleutel aan Karim, of zet hem zelf in Coolify als
+              <code>MOLLIE_API_KEY</code> en klik op Redeploy.</li>
+              <li>Kom hier terug en klik op <strong>Controleer verbinding</strong>.</li>
+            </ol>
+            <p>De sleutel is een wachtwoord: deel hem niet in een chat of mail die anderen kunnen lezen
+            en zet hem nergens anders neer.</p>
+          </div>
+        </details>
+      </section>
 
       <details class="card help" id="shop-help">
         <summary>Zo werkt de shop. Lees dit een keer rustig door</summary>
@@ -1679,10 +1723,66 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
     const mode = (ME && ME.payments) || 'off';
     $('#s-nomollie').hidden = mode !== 'off';
     $('#s-testmollie').hidden = mode !== 'test';
+    paintPayments(mode);
     renderOrders();
     renderProducts();
     renderSettings();
   }
+
+  /* ---------------------------------------------------------- payments */
+  /* The key itself never passes through this screen: it is set once in the hosting panel. What this
+     card does is ask the server to talk to Mollie and report back, so the owner can see for herself
+     that it works and which methods are switched on. */
+  function paintPayments(mode) {
+    const sub = $('#pay-sub');
+    $('#pay-methods').hidden = true;
+    $('#pay-how').hidden = mode !== 'off';
+    if (mode === 'off') {
+      sub.textContent = 'Nog niet aangesloten. Mensen kunnen wel kijken, niet kopen.';
+      $('#pay-status').textContent = '';
+      $('#pay-how').open = true;
+      return;
+    }
+    sub.textContent = mode === 'live' ? 'Aangesloten op Mollie, echte betalingen.' : 'Aangesloten op Mollie in testmodus.';
+    $('#pay-status').textContent = 'Klik op "Controleer verbinding" om te zien of alles het doet.';
+  }
+
+  $('#pay-check').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    $('#pay-status').textContent = 'Even kijken bij Mollie...';
+    try {
+      const d = await api('shop/mollie');
+      const list = $('#pay-methods');
+      list.textContent = '';
+      if (d.ok) {
+        const where = d.profile && d.profile.website ? ` voor ${d.profile.website}` : '';
+        $('#pay-status').textContent = d.mode === 'live'
+          ? `Alles werkt${where}. Betalingen gaan echt door.`
+          : `Alles werkt${where}, maar in testmodus: er wordt geen echt geld afgeschreven.`;
+        if (d.methods.length) {
+          d.methods.forEach((m) => list.append(h('li', { text: m.name })));
+          list.hidden = false;
+          $('#pay-sub').textContent = `${d.methods.length} ${d.methods.length === 1 ? 'manier' : 'manieren'} om te betalen staan aan`;
+        } else {
+          $('#pay-status').textContent += ' Let op: er staat nog geen enkele betaalmethode aan in Mollie, zet in elk geval iDEAL aan.';
+        }
+        $('#pay-how').hidden = true;
+      } else {
+        list.hidden = true;
+        $('#pay-how').hidden = false;
+        $('#pay-how').open = true;
+        $('#pay-status').textContent =
+          d.reason === 'no-key' ? 'Er staat nog geen Mollie-sleutel ingesteld, dus er valt nog niets te controleren.'
+          : d.reason === 'bad-key' ? 'Mollie herkent de sleutel niet. Is hij misschien half geplakt, of hoort hij bij een ander account?'
+          : `Mollie reageert niet zoals verwacht: ${d.error || 'onbekende fout'}`;
+      }
+    } catch (ex) {
+      if (ex.status !== 401) $('#pay-status').textContent = `Dat lukte niet: ${ex.message}`;
+    } finally {
+      btn.disabled = false;
+    }
+  });
 
   /* ---------------------------------------------------------- orders */
   function renderOrders() {

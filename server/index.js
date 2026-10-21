@@ -949,6 +949,8 @@ on('GET', /^\/api\/admin\/shop$/, admin((req, res) =>
     limits: shop.limits,
   })));
 on('PUT', /^\/api\/admin\/shop$/, admin(async (req, res) => json(res, 200, shop.saveSettings(await readJson(req)))));
+// "does the Mollie key work, and what can people pay with": read-only, nothing is created
+on('GET', /^\/api\/admin\/shop\/mollie$/, admin(async (req, res) => json(res, 200, await payments.check())));
 on('POST', /^\/api\/admin\/products$/, admin(async (req, res) => json(res, 201, shop.createProduct(await readJson(req)))));
 on('POST', /^\/api\/admin\/products\/order$/, admin(async (req, res) => json(res, 200, shop.orderProducts(await readJson(req)))));
 on('PUT', /^\/api\/admin\/products\/(\d+)$/, admin(async (req, res, url, m) => json(res, 200, shop.updateProduct(m[1], await readJson(req)))));

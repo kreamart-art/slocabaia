@@ -133,6 +133,14 @@ async function startMollie() {
         res.writeHead(201);
         return res.end(JSON.stringify({ id, status: 'open', _links: { checkout: { href: `https://pay.test/checkout/${id}` } } }));
       }
+      if (req.method === 'GET' && req.url === '/profiles/me') {
+        res.writeHead(200);
+        return res.end(JSON.stringify({ id: 'pfl_test', name: 'Slocabaia', website: 'https://slocabaia.test', status: 'verified' }));
+      }
+      if (req.method === 'GET' && (req.url || '').startsWith('/methods')) {
+        res.writeHead(200);
+        return res.end(JSON.stringify({ _embedded: { methods: [{ id: 'ideal', description: 'iDEAL' }, { id: 'creditcard', description: 'Card' }] } }));
+      }
       const m = /^\/payments\/(tr_[A-Za-z0-9]+)$/.exec(req.url || '');
       if (req.method === 'GET' && m && payments.has(m[1])) {
         const p = payments.get(m[1]);
@@ -355,6 +363,7 @@ describe('shop and events admin API: access control', needFfmpeg, () => {
 
   const endpoints = () => [
     ['GET', '/api/admin/shop', undefined],
+    ['GET', '/api/admin/shop/mollie', undefined],
     ['PUT', '/api/admin/shop', { open: true }],
     ['POST', '/api/admin/products', { name: 'x', price: '1,00' }],
     ['POST', '/api/admin/products/order', { ids: [] }],
@@ -814,6 +823,65 @@ describe('shipping: zones, free over, pickup', needFfmpeg, () => {
     assert.equal(empty.status, 400, empty.text);
     const restored = await api('PUT', '/api/admin/shop', s);
     assert.equal(restored.status, 200);
+  });
+});
+
+/* ================================================================== the Mollie check */
+
+describe('the dashboard check on the Mollie connection', needFfmpeg, () => {
+  let S;
+  let M;
+  let api;
+  before(async () => {
+    M = await startMollie();
+    S = await startServer({ mollieBase: M.base });
+    ({ api } = await signIn(S));
+  });
+  after(async () => {
+    await S?.stop();
+    await M?.close();
+  });
+
+  test('a working key reports the profile and the methods that are on', async () => {
+    const r = await api('GET', '/api/admin/shop/mollie');
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.ok, true);
+    assert.equal(r.json.mode, 'test');
+    assert.equal(r.json.profile.website, 'https://slocabaia.test');
+    assert.deepEqual(r.json.methods.map((m) => m.name), ['iDEAL', 'Card']);
+    // reading the check never creates anything at Mollie
+    assert.equal(M.payments.size, 0);
+  });
+
+  test('a key Mollie refuses is reported as a bad key, not as a crash', async () => {
+    const bad = await startServer({ mollieBase: M.base, apiKey: '' });
+    try {
+      const { api: a } = await signIn(bad);
+      const r = await a('GET', '/api/admin/shop/mollie');
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.ok, false);
+      assert.equal(r.json.mode, 'off');
+      assert.equal(r.json.reason, 'no-key');
+    } finally {
+      await bad.stop();
+    }
+  });
+
+  test('a Mollie that cannot be reached is reported, and the shop keeps working', async () => {
+    const port = await freePort();
+    const dead = await startServer({ mollieBase: `http://127.0.0.1:${port}` });
+    try {
+      const { api: a } = await signIn(dead);
+      const r = await a('GET', '/api/admin/shop/mollie');
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.ok, false);
+      assert.equal(r.json.reason, 'error');
+      assert.ok(r.json.error, 'says what went wrong');
+      // the rest of the dashboard is untouched by a dead payment provider
+      assert.equal((await a('GET', '/api/admin/shop')).status, 200);
+    } finally {
+      await dead.stop();
+    }
   });
 });
 

@@ -51,6 +51,26 @@ export function createPayments({ apiKey = '', siteUrl = '', apiBase = '' } = {})
       if (!checkoutUrl) throw new HttpError(502, 'Mollie gave no checkout link.');
       return { id: String(d.id || ''), checkoutUrl };
     },
+    /**
+     * Is the key any good, and what can people pay with? The dashboard asks this; nothing here
+     * changes anything at Mollie, it only reads the profile and the methods that are switched on.
+     */
+    async check() {
+      if (mode === 'off') return { ok: false, mode, reason: 'no-key' };
+      try {
+        const [profile, methods] = await Promise.all([call('/profiles/me'), call('/methods?locale=nl_NL')]);
+        return {
+          ok: true,
+          mode,
+          profile: { name: profile?.name || '', website: profile?.website || '', status: profile?.status || '' },
+          methods: (methods?._embedded?.methods || []).map((m) => ({ id: String(m.id || ''), name: String(m.description || m.id || '') })),
+        };
+      } catch (err) {
+        // 401 means the key itself is wrong; everything else is Mollie or the network talking
+        const reason = err.mollie?.status === 401 || /unauthorized|authentication/i.test(err.message) ? 'bad-key' : 'error';
+        return { ok: false, mode, reason, error: err.message };
+      }
+    },
     /** Mollie only sends an id in its webhook; the real state is always read back from here */
     async get(id) {
       if (mode === 'off') throw new HttpError(503, 'Payments are not set up yet.');

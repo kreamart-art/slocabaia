@@ -1,7 +1,7 @@
 // Slocabaia dashboard as an app. Network first, so an update lands straight away; the cache is
 // only the offline fallback for the shell. API answers are never cached: they hold messages and
 // member data.
-const CACHE = 'sloca-dashboard-v2';
+const CACHE = 'sloca-dashboard-v3';
 const SHELL = ['/admin/', '/admin/manifest.webmanifest', '/admin/icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {
