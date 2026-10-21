@@ -470,6 +470,14 @@ async function placeOrder(req, res) {
   json(res, 200, await shop.placeOrder(await readJson(req, 64 * 1024)));
 }
 
+/** what a code is worth for this bag; the browser never decides that itself */
+async function quoteDiscount(req, res) {
+  if (!orderLimit.take(clientIp(req))) {
+    return json(res, 429, { ok: false, error: 'Too many attempts. Try again in a few minutes.' });
+  }
+  json(res, 200, shop.quoteDiscount(await readJson(req, 16 * 1024)));
+}
+
 /** Mollie's webhook carries only a payment id; the real state is read back from Mollie */
 async function shopWebhook(req, res) {
   const body = await readForm(req);
@@ -894,6 +902,7 @@ on('GET', /^\/healthz$/, (req, res) => send(res, 200, 'ok', { 'Content-Type': 't
 on('POST', /^\/api\/subscribe$/, subscribe);
 on('POST', /^\/api\/contact$/, contact);
 on('POST', /^\/api\/shop\/order$/, placeOrder);
+on('POST', /^\/api\/shop\/discount$/, quoteDiscount);
 on('POST', /^\/api\/shop\/webhook$/, shopWebhook);
 on('GET', /^\/shop\/thanks$/, thanksPage);
 on('GET', /^\/api\/confirm$/, confirm);
@@ -946,11 +955,15 @@ on('GET', /^\/api\/admin\/shop$/, admin((req, res) =>
     orders: shop.orders(),
     unread: shop.unreadOrders(),
     countries: shop.countries(),
+    discounts: shop.discounts(),
     limits: shop.limits,
   })));
 on('PUT', /^\/api\/admin\/shop$/, admin(async (req, res) => json(res, 200, shop.saveSettings(await readJson(req)))));
 // "does the Mollie key work, and what can people pay with": read-only, nothing is created
 on('GET', /^\/api\/admin\/shop\/mollie$/, admin(async (req, res) => json(res, 200, await payments.check())));
+on('POST', /^\/api\/admin\/discounts$/, admin(async (req, res) => json(res, 201, shop.createDiscount(await readJson(req)))));
+on('PUT', /^\/api\/admin\/discounts\/(\d+)$/, admin(async (req, res, url, m) => json(res, 200, shop.updateDiscount(m[1], await readJson(req)))));
+on('DELETE', /^\/api\/admin\/discounts\/(\d+)$/, admin((req, res, url, m) => json(res, 200, shop.removeDiscount(m[1]))));
 on('POST', /^\/api\/admin\/products$/, admin(async (req, res) => json(res, 201, shop.createProduct(await readJson(req)))));
 on('POST', /^\/api\/admin\/products\/order$/, admin(async (req, res) => json(res, 200, shop.orderProducts(await readJson(req)))));
 on('PUT', /^\/api\/admin\/products\/(\d+)$/, admin(async (req, res, url, m) => json(res, 200, shop.updateProduct(m[1], await readJson(req)))));

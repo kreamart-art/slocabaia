@@ -58,6 +58,8 @@ a{color:inherit}
 
 .meta{font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
 .mark{font-family:var(--f-display);font-weight:900;font-size:13px;letter-spacing:.16em;text-transform:uppercase;margin:0}
+.mk-wrap{display:block;width:22px;color:var(--text)}
+.mk-wrap .mk{display:block;width:100%;height:auto}
 h1,h2,h3{margin:0;font-weight:700;letter-spacing:.01em}
 h2{font-size:17px}
 h3{font-size:15px}
@@ -428,6 +430,7 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
      ====================================================================== -->
 <main class="login" id="login" hidden>
   <form id="login-form" novalidate>
+    <span class="mk-wrap" style="width:40px;margin:0 auto 10px" aria-hidden="true"><svg class="mk" viewBox="0 0 577 577" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M33 1L51 3L70 14L160 76L227 128L230 141L225 155L213 166L203 169L197 169L181 162L151 141L128 129L115 128L111 130L106 136L106 142L142 167L162 185L178 205L193 234L208 257L225 278L245 298L263 305L328 319L347 336L358 356L358 364L349 373L319 398L238 477L187 521L159 542L123 564L102 573L81 578L55 578L35 573L14 562L7 556L1 546L1 534L6 522L76 419L127 353L132 350L141 349L152 352L158 356L168 371L169 382L159 403L135 438L128 455L130 468L136 473L141 474L172 431L198 406L225 390L229 382L229 375L225 364L211 345L191 325L163 302L78 211L45 170L20 132L5 99L1 81L1 56L4 41L13 20L23 7L33 1ZM529 1L557 2L565 5L574 13L578 22L578 37L574 50L565 66L413 281L456 326L500 379L532 424L562 478L577 523L578 552L572 568L566 574L557 578L537 577L513 565L361 458L353 447L353 436L358 425L368 416L379 412L389 413L398 417L433 441L458 453L468 453L473 450L477 444L475 437L442 415L416 391L402 372L390 348L370 318L355 300L328 274L321 263L321 256L331 241L343 233L380 216L399 202L417 184L438 156L452 131L455 120L453 111L449 107L441 105L411 147L390 168L370 182L341 197L317 214L269 259L258 261L246 254L233 239L228 225L228 220L233 214L303 144L348 104L395 67L432 42L474 19L511 5L529 1Z"/></svg></span>
     <p class="mark">Slocabaia</p>
     <h1>Dashboard</h1>
     <p class="login__note" id="l-note" role="status" hidden>
@@ -467,7 +470,7 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
      ====================================================================== -->
 <div id="app" hidden>
   <header class="top">
-    <div class="top__brand"><p class="mark">Slocabaia</p><span class="meta">Dashboard</span></div>
+    <div class="top__brand"><span class="mk-wrap" aria-hidden="true"><svg class="mk" viewBox="0 0 577 577" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M33 1L51 3L70 14L160 76L227 128L230 141L225 155L213 166L203 169L197 169L181 162L151 141L128 129L115 128L111 130L106 136L106 142L142 167L162 185L178 205L193 234L208 257L225 278L245 298L263 305L328 319L347 336L358 356L358 364L349 373L319 398L238 477L187 521L159 542L123 564L102 573L81 578L55 578L35 573L14 562L7 556L1 546L1 534L6 522L76 419L127 353L132 350L141 349L152 352L158 356L168 371L169 382L159 403L135 438L128 455L130 468L136 473L141 474L172 431L198 406L225 390L229 382L229 375L225 364L211 345L191 325L163 302L78 211L45 170L20 132L5 99L1 81L1 56L4 41L13 20L23 7L33 1ZM529 1L557 2L565 5L574 13L578 22L578 37L574 50L565 66L413 281L456 326L500 379L532 424L562 478L577 523L578 552L572 568L566 574L557 578L537 577L513 565L361 458L353 447L353 436L358 425L368 416L379 412L389 413L398 417L433 441L458 453L468 453L473 450L477 444L475 437L442 415L416 391L402 372L390 348L370 318L355 300L328 274L321 263L321 256L331 241L343 233L380 216L399 202L417 184L438 156L452 131L455 120L453 111L449 107L441 105L411 147L390 168L370 182L341 197L317 214L269 259L258 261L246 254L233 239L228 225L228 220L233 214L303 144L348 104L395 67L432 42L474 19L511 5L529 1Z"/></svg></span><p class="mark">Slocabaia</p><span class="meta">Dashboard</span></div>
     <div class="top__actions">
       <button class="bell" id="bell" type="button" aria-label="Meldingen" aria-haspopup="dialog" aria-expanded="false" aria-controls="pop">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a4 4 0 1 1 8 0c0 3.6 1.6 5 1.6 5H2.4S4 10.6 4 7"/><path d="M6.7 13.8a1.4 1.4 0 0 0 2.6 0"/></svg>
@@ -776,6 +779,21 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
           de boeken en moet zeven jaar bewaard blijven. Alleen bestellingen die nooit betaald zijn kun
           je weggooien.</p>
 
+          <h3>Kortingscodes</h3>
+          <p>Met <strong>Nieuwe code</strong> maak je er een. Je kiest zelf wat hij doet:</p>
+          <ul>
+            <li><strong>Percentage</strong>: bijvoorbeeld 10% van de artikelen af.</li>
+            <li><strong>Bedrag</strong>: bijvoorbeeld 5 euro eraf.</li>
+            <li><strong>Gratis verzending</strong>: de artikelen blijven vol, de verzendkosten vervallen.</li>
+          </ul>
+          <p>Verder kun je instellen vanaf welk bedrag hij geldt, tussen welke datums hij werkt en hoe vaak
+          hij in totaal gebruikt mag worden. Laat een veld leeg of op 0 en die grens geldt niet.</p>
+          <p>Hoofdletters maken niet uit: wie <code>lente10</code> typt krijgt gewoon <code>LENTE10</code>.
+          De teller "gebruikt" loopt alleen op bij bestellingen die echt betaald zijn, dus iemand die
+          afhaakt bij de bank verbruikt je code niet.</p>
+          <p>Een code uitzetten doe je met de status <strong>uit</strong>; dan werkt hij meteen niet meer,
+          terwijl je hem later weer aan kunt zetten. Verwijderen kan ook, maar dan ben je de teller kwijt.</p>
+
           <h3>Verzendkosten</h3>
           <p>Onderaan deze pagina staan de zones. Per zone geef je de landen en de prijs. Een land dat
           in geen enkele zone staat, kan niet besteld worden: de klant ziet dan dat we daar niet
@@ -814,6 +832,19 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
         <ul class="rows" id="p-list"></ul>
         <p class="empty" id="p-empty" hidden>Nog geen producten. Klik op "Nieuw product" om te beginnen.</p>
         <p class="saved" id="p-status" role="status"></p>
+      </section>
+
+      <section class="card" style="margin-bottom:14px">
+        <div class="card__head">
+          <div><h2>Kortingscodes</h2><p class="card__sub" id="k-sub"></p></div>
+          <button class="pill pill--small" type="button" id="k-new">Nieuwe code</button>
+        </div>
+        <p class="sub" style="margin:0 0 12px">Een code werkt pas als hij op "actief" staat. De korting gaat van
+        de artikelen af, niet van de verzendkosten, tenzij je kiest voor gratis verzending. De teller loopt
+        alleen op als er echt betaald is.</p>
+        <ul class="rows" id="k-list"></ul>
+        <p class="empty" id="k-empty" hidden>Nog geen codes. Klik op "Nieuwe code" om er een te maken.</p>
+        <p class="saved" id="k-status" role="status"></p>
       </section>
 
       <section class="card">
@@ -1727,6 +1758,7 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
     paintPayments(mode);
     renderOrders();
     renderProducts();
+    renderDiscounts();
     renderSettings();
   }
 
@@ -2137,6 +2169,124 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
       sStatus('Opgeslagen.');
       toast('Shopinstellingen opgeslagen.');
     } catch (ex) { if (ex.status !== 401) sStatus(`Dat lukte niet: ${ex.message}`); }
+  });
+
+
+  /* ---------------------------------------------------------- discount codes */
+  const kStatus = (m) => { $('#k-status').textContent = m; };
+  const KIND = { percent: 'Percentage', amount: 'Bedrag', shipping: 'Gratis verzending' };
+
+  function renderDiscounts() {
+    const list = $('#k-list');
+    const open = new Set($$('#k-list details[open]').map((d) => d.id));
+    list.textContent = '';
+    const rows = SHOP.discounts || [];
+    $('#k-empty').hidden = rows.length > 0;
+    const live = rows.filter((d) => d.status === 'live').length;
+    $('#k-sub').textContent = `${fmt(rows.length)} van ${SHOP.limits.discounts}, waarvan ${fmt(live)} actief`;
+    rows.forEach((d) => list.append(codeRow(d, open.has(`code-${d.id}`))));
+  }
+
+  const worth = (d) =>
+    d.kind === 'percent' ? `${d.value}% korting` : d.kind === 'amount' ? `${euro(d.value)} korting` : 'gratis verzending';
+
+  function codeRow(d, isOpen) {
+    const f = {
+      code: h('input', { type: 'text', maxlength: '24', value: d.code, style: 'text-transform:uppercase' }),
+      kind: h('select', {}, [
+        h('option', { value: 'percent', text: 'Percentage van de artikelen' }),
+        h('option', { value: 'amount', text: 'Vast bedrag eraf' }),
+        h('option', { value: 'shipping', text: 'Gratis verzending' }),
+      ]),
+      value: h('input', { type: 'text', inputmode: 'decimal', value: d.kind === 'percent' ? String(d.value) : priceField(d.value) }),
+      status: h('select', {}, [
+        h('option', { value: 'live', text: 'Actief' }),
+        h('option', { value: 'off', text: 'Uit' }),
+      ]),
+      min: h('input', { type: 'text', inputmode: 'decimal', value: priceField(d.min_cents) }),
+      starts: h('input', { type: 'date', value: d.starts_on || '' }),
+      ends: h('input', { type: 'date', value: d.ends_on || '' }),
+      max: h('input', { type: 'text', inputmode: 'numeric', value: String(d.max_uses || 0) }),
+      note: h('input', { type: 'text', maxlength: '200', value: d.note || '', placeholder: 'Waar is deze code voor?' }),
+    };
+    f.kind.value = d.kind;
+    f.status.value = d.status;
+
+    const valueField = h('label', { class: 'field' }, h('span', { text: d.kind === 'percent' ? 'Hoeveel procent' : 'Hoeveel euro' }), f.value);
+    const paintKind = () => {
+      const pct = f.kind.value === 'percent';
+      valueField.hidden = f.kind.value === 'shipping';
+      valueField.querySelector('span').textContent = pct ? 'Hoeveel procent' : 'Hoeveel euro';
+      if (pct && f.value.value.includes(',')) f.value.value = String(Math.round(Number(f.value.value.replace(',', '.')) || 0));
+    };
+    f.kind.addEventListener('change', paintKind);
+    paintKind();
+
+    const save = async () => {
+      try {
+        const fresh = await api(`discounts/${d.id}`, {
+          method: 'PUT',
+          body: {
+            code: f.code.value, kind: f.kind.value, value: f.value.value, status: f.status.value,
+            min_cents: f.min.value, starts_on: f.starts.value, ends_on: f.ends.value,
+            max_uses: f.max.value, note: f.note.value,
+          },
+        });
+        Object.assign(d, fresh);
+        kStatus(`"${fresh.code}" opgeslagen.`);
+        toast(fresh.status === 'live' ? 'Code opgeslagen en actief.' : 'Code opgeslagen, staat uit.');
+        await loadShop();
+      } catch (ex) { if (ex.status !== 401) kStatus(`Dat lukte niet: ${ex.message}`); }
+    };
+
+    const used = d.max_uses ? `${fmt(d.used)} van ${fmt(d.max_uses)} keer gebruikt` : `${fmt(d.used)} keer gebruikt`;
+    const window_ = [d.starts_on ? `vanaf ${onDay(d.starts_on)}` : '', d.ends_on ? `tot en met ${onDay(d.ends_on)}` : ''].filter(Boolean).join(', ');
+    const spent = d.max_uses && d.used >= d.max_uses;
+    return h('details', { class: 'row', id: `code-${d.id}`, open: isOpen || undefined },
+      h('summary', {},
+        h('span', { class: 'row__t' },
+          h('strong', { text: d.code }),
+          h('span', { text: [worth(d), used, window_, d.min_cents ? `vanaf ${euro(d.min_cents)}` : ''].filter(Boolean).join(' · ') })),
+        spent ? h('span', { class: 'tag tag--warn', text: 'Op' }) : null,
+        tag(d.status === 'live' ? ['Actief', 'tag--live'] : ['Uit', 'tag--draft'])),
+      h('div', { class: 'row__body' },
+        h('div', { class: 'fieldrow' },
+          h('label', { class: 'field' }, h('span', { text: 'De code' }), f.code),
+          h('label', { class: 'field' }, h('span', { text: 'Wat doet hij' }), f.kind),
+          valueField,
+          h('label', { class: 'field' }, h('span', { text: 'Status' }), f.status)),
+        h('div', { class: 'fieldrow' },
+          h('label', { class: 'field' }, h('span', { text: 'Geldig vanaf bedrag' }), f.min),
+          h('label', { class: 'field' }, h('span', { text: 'Eerste dag' }), f.starts),
+          h('label', { class: 'field' }, h('span', { text: 'Laatste dag' }), f.ends),
+          h('label', { class: 'field' }, h('span', { text: 'Maximaal aantal keer (0 = onbeperkt)' }), f.max)),
+        h('label', { class: 'field' }, h('span', { text: 'Notitie voor jezelf' }), f.note),
+        h('div', { class: 'row__foot' },
+          h('div', { class: 'actions' },
+            h('button', { class: 'pill pill--small', type: 'button', text: 'Opslaan', onclick: save }),
+            h('span', { class: 'sub', text: used })),
+          h('button', { class: 'link-btn link-btn--danger', type: 'button', text: 'Code verwijderen', onclick: async () => {
+            if (!(await confirmDialog('Code verwijderen?', `"${d.code}" werkt daarna niet meer en de teller verdwijnt. Wil je hem alleen tijdelijk stoppen, zet de status dan op "uit".`, 'Verwijderen'))) return;
+            try {
+              await api(`discounts/${d.id}`, { method: 'DELETE' });
+              toast('Code verwijderd.');
+              await loadShop();
+            } catch (ex) { if (ex.status !== 401) kStatus(`Dat lukte niet: ${ex.message}`); }
+          } }))));
+  }
+
+  $('#k-new').addEventListener('click', async () => {
+    /* a readable code people can type over the phone: no O/0 or I/1 mix-ups */
+    const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'SLOCA';
+    for (let i = 0; i < 3; i++) code += letters[Math.floor(Math.random() * letters.length)];
+    try {
+      const made = await api('discounts', { method: 'POST', body: { code, kind: 'percent', value: 10, status: 'off' } });
+      await loadShop();
+      const row = document.getElementById(`code-${made.id}`);
+      if (row) { row.open = true; row.scrollIntoView({ block: 'center' }); row.querySelector('input').focus(); }
+      kStatus('Kies de code en wat hij doet, en zet hem daarna op actief.');
+    } catch (ex) { if (ex.status !== 401) kStatus(`Dat lukte niet: ${ex.message}`); }
   });
 
   /* ------------------------------------------------------------------ events */

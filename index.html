@@ -184,9 +184,13 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 }
 .nav__inner{display:flex;align-items:center;justify-content:space-between;gap:20px;width:100%}
 .nav__mark{
+  display:inline-flex;align-items:center;gap:9px;
   font-family:var(--f-display);font-weight:900;font-stretch:110%;
   font-size:14px;letter-spacing:.14em;text-transform:uppercase;
 }
+/* the house mark, same ink as the word next to it */
+.mk{width:1.5em;height:1.5em;flex:0 0 auto;display:block}
+@media (max-width:430px){ .nav__mark .mk{width:1.7em;height:1.7em} }
 .nav__links{display:flex;align-items:center;gap:clamp(14px,2vw,30px)}
 .nav__links a{
   font-size:var(--t-meta);font-weight:600;font-stretch:82%;
@@ -654,6 +658,25 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 }
 .sum b{font-variant-numeric:tabular-nums;font-weight:inherit}
 
+/* ------------------------------------------- inside the overlay: a code */
+.code{display:flex;gap:8px;margin:0 0 10px}
+.code input{
+  flex:1 1 auto;min-width:0;padding:12px 16px;border-radius:999px;
+  border:1px solid var(--line);background:var(--char);color:var(--bone);
+  font:inherit;font-size:var(--t-small);letter-spacing:.14em;text-transform:uppercase;
+}
+.code input::placeholder{letter-spacing:.04em;text-transform:none;color:var(--ash)}
+.code input:focus{outline:2px solid var(--ember);outline-offset:2px;border-color:transparent}
+.code__go{
+  flex:0 0 auto;padding:12px 18px;border-radius:999px;border:1px solid var(--line);
+  font-size:var(--t-meta);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--bone-2);
+  transition:background .25s,color .25s,border-color .25s;
+}
+.code__go:hover{background:var(--ember);color:var(--void);border-color:transparent}
+.code__said{margin:-4px 0 12px;font-size:var(--t-meta);letter-spacing:.04em;min-height:1.2em;color:var(--ash)}
+.code__said.is-on{color:#7ddc7d}
+.code__said.is-off{color:var(--ember-hot)}
+
 /* --------------------------------------------- inside the overlay: checkout */
 .co{display:grid;gap:12px}
 .co__row{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
@@ -783,7 +806,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 @media (max-width:430px){
   .foot__base{grid-template-columns:1fr auto}
   .foot__base > span{display:none}
-  .foot__base .foot__legal{text-align:left}
+  .foot__base .foot__mk{display:block;width:26px;color:var(--ash-2)}
+.foot__legal{text-align:left}
 }
 .foot__legal{flex:1 1 100%;text-align:center;margin:0;font-size:var(--t-meta);letter-spacing:.16em;text-transform:uppercase;color:var(--ash)}
 
@@ -944,7 +968,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 
 <header class="nav" id="nav">
   <div class="wrap nav__inner">
-    <a class="nav__mark" href="#top">Slocabaia</a>
+    <a class="nav__mark" href="#top"><svg class="mk" viewBox="0 0 577 577" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M33 1L51 3L70 14L160 76L227 128L230 141L225 155L213 166L203 169L197 169L181 162L151 141L128 129L115 128L111 130L106 136L106 142L142 167L162 185L178 205L193 234L208 257L225 278L245 298L263 305L328 319L347 336L358 356L358 364L349 373L319 398L238 477L187 521L159 542L123 564L102 573L81 578L55 578L35 573L14 562L7 556L1 546L1 534L6 522L76 419L127 353L132 350L141 349L152 352L158 356L168 371L169 382L159 403L135 438L128 455L130 468L136 473L141 474L172 431L198 406L225 390L229 382L229 375L225 364L211 345L191 325L163 302L78 211L45 170L20 132L5 99L1 81L1 56L4 41L13 20L23 7L33 1ZM529 1L557 2L565 5L574 13L578 22L578 37L574 50L565 66L413 281L456 326L500 379L532 424L562 478L577 523L578 552L572 568L566 574L557 578L537 577L513 565L361 458L353 447L353 436L358 425L368 416L379 412L389 413L398 417L433 441L458 453L468 453L473 450L477 444L475 437L442 415L416 391L402 372L390 348L370 318L355 300L328 274L321 263L321 256L331 241L343 233L380 216L399 202L417 184L438 156L452 131L455 120L453 111L449 107L441 105L411 147L390 168L370 182L341 197L317 214L269 259L258 261L246 254L233 239L228 225L228 220L233 214L303 144L348 104L395 67L432 42L474 19L511 5L529 1Z"/></svg><span>Slocabaia</span></a>
     <nav class="nav__links" aria-label="Primary">
       <a href="#about">About</a>
       <a href="#shop" class="nav__jump" data-needs="shop" hidden>Shop</a>
@@ -1162,7 +1186,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
     <button type="button" data-sheet="cookies">Cookie settings</button>
   </div>
   <div class="foot__base">
-    <span aria-hidden="true"></span>
+    <span class="foot__mk" aria-hidden="true"><svg class="mk" viewBox="0 0 577 577" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M33 1L51 3L70 14L160 76L227 128L230 141L225 155L213 166L203 169L197 169L181 162L151 141L128 129L115 128L111 130L106 136L106 142L142 167L162 185L178 205L193 234L208 257L225 278L245 298L263 305L328 319L347 336L358 356L358 364L349 373L319 398L238 477L187 521L159 542L123 564L102 573L81 578L55 578L35 573L14 562L7 556L1 546L1 534L6 522L76 419L127 353L132 350L141 349L152 352L158 356L168 371L169 382L159 403L135 438L128 455L130 468L136 473L141 474L172 431L198 406L225 390L229 382L229 375L225 364L211 345L191 325L163 302L78 211L45 170L20 132L5 99L1 81L1 56L4 41L13 20L23 7L33 1ZM529 1L557 2L565 5L574 13L578 22L578 37L574 50L565 66L413 281L456 326L500 379L532 424L562 478L577 523L578 552L572 568L566 574L557 578L537 577L513 565L361 458L353 447L353 436L358 425L368 416L379 412L389 413L398 417L433 441L458 453L468 453L473 450L477 444L475 437L442 415L416 391L402 372L390 348L370 318L355 300L328 274L321 263L321 256L331 241L343 233L380 216L399 202L417 184L438 156L452 131L455 120L453 111L449 107L441 105L411 147L390 168L370 182L341 197L317 214L269 259L258 261L246 254L233 239L228 225L228 220L233 214L303 144L348 104L395 67L432 42L474 19L511 5L529 1Z"/></svg></span>
     <p class="foot__legal">&copy; <span id="yr">2026</span> Slocabaia. All rights reserved.</p>
     <a class="foot__krm" href="https://krmkrueger.com" target="_blank" rel="noopener"
        aria-label="Built by KRM Krueger" title="Built by KRM Krueger">
@@ -2020,6 +2044,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 
     /* ------------------------------------------------------------ a piece */
     let pick = null; // { id, variant, qty } while a piece is open
+    let deal = null; // what the server said the typed code is worth
+    let askCodeNow = null; // set by the bag, so the Use button can reach it
 
     function piecePanel(id) {
       const p = pieceOf(id);
@@ -2059,6 +2085,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
     function bagPanel() {
       const ls = lines();
       if (!ls.length) {
+        askCodeNow = null;
         showSheet('Your bag', '<div class="pan"><p class="pan__text">Your bag is empty.</p><div class="pan__act"><button class="pill" type="button" data-close>Back to the shop' + arrow + '</button></div></div>');
         return;
       }
@@ -2088,6 +2115,13 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
         : '';
       showSheet('Your bag', `
         <ul class="bagl" role="list">${rows}</ul>
+        <div class="code" id="code">
+          <label class="skip" for="code-in">Discount code</label>
+          <input id="code-in" type="text" inputmode="latin" autocapitalize="characters" autocomplete="off"
+                 maxlength="24" placeholder="Discount code">
+          <button class="code__go" type="button" data-act="code">Use</button>
+        </div>
+        <p class="code__said" id="code-said" role="status"></p>
         <div class="sum" id="sum"></div>
         <form class="co" id="co" novalidate>
           <div class="co__row co__row--two">
@@ -2124,13 +2158,53 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
         const ship = shipFor(form.elements.country.value, subtotal, pickedUp);
         const addr = $$('input[name=street],input[name=postcode],input[name=city]', form);
         addr.forEach((el) => { el.closest('.cfield').style.display = pickedUp ? 'none' : ''; el.required = !pickedUp; });
+        /* with a code in hand the server has already done the sums, so its numbers win */
+        const cut = deal && deal.discount_cents ? deal.discount_cents : 0;
+        const freeShip = Boolean(deal && deal.free_shipping);
+        const shipCents = ship ? (freeShip ? 0 : ship.cents) : 0;
         $('#sum', sheetBody).innerHTML =
           `<div><span>Subtotal</span><b>${money(subtotal)}</b></div>` +
-          `<div><span>${ship ? esc(ship.label) : 'Shipping'}</span><b>${ship ? (ship.cents ? money(ship.cents) : 'Free') : 'Not available'}</b></div>` +
-          `<div class="is-total"><span>Total</span><b>${ship ? money(subtotal + ship.cents) : '&mdash;'}</b></div>`;
+          (deal ? `<div><span>Code ${esc(deal.code)}</span><b>${cut ? `&minus;${money(cut)}` : esc(deal.label || 'Free shipping')}</b></div>` : '') +
+          `<div><span>${ship ? esc(ship.label) : 'Shipping'}</span><b>${ship ? (shipCents ? money(shipCents) : 'Free') : 'Not available'}</b></div>` +
+          `<div class="is-total"><span>Total</span><b>${ship ? money(Math.max(0, subtotal - cut + shipCents)) : '&mdash;'}</b></div>`;
       };
-      form.addEventListener('change', paintSum);
-      paintSum();
+      /* a code can depend on the country (free shipping) and on the total, so it is asked again */
+      const askCode = async (code, quiet) => {
+        const said = $('#code-said', sheetBody);
+        const input = $('#code-in', sheetBody);
+        if (!code) { deal = null; said.textContent = ''; said.className = 'code__said'; paintSum(); return; }
+        try {
+          const res = await fetch('/api/shop/discount', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({
+              code,
+              country: form.elements.country.value,
+              pickup: form.elements.pickup ? form.elements.pickup.checked : false,
+              items: lines().map((l) => ({ product_id: l.p.id, variant: l.v.key, qty: l.qty })),
+            }),
+          });
+          const d = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(d.error || 'That code did not work.');
+          deal = d;
+          input.value = d.code;
+          said.textContent = d.free_shipping ? `${d.code} takes the shipping off.` : `${d.code} is on: ${d.label}.`;
+          said.className = 'code__said is-on';
+        } catch (err) {
+          deal = null;
+          if (!quiet) {
+            said.textContent = err.message;
+            said.className = 'code__said is-off';
+          }
+        }
+        paintSum();
+      };
+      askCodeNow = askCode;
+      form.addEventListener('change', () => { paintSum(); if (deal) askCode(deal.code, true); });
+      $('#code-in', sheetBody).addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); askCode($('#code-in', sheetBody).value.trim()); }
+      });
+      if (deal) askCode(deal.code, true); else paintSum();
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -2153,6 +2227,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
               name: f.name.value, email: f.email.value, phone: f.phone.value,
               street: f.street.value, postcode: f.postcode.value, city: f.city.value,
               country: f.country.value, pickup: pickedUp, note: f.note.value,
+              discount: deal ? deal.code : '',
               items: lines().map((l) => ({ product_id: l.p.id, variant: l.v.key, qty: l.qty })),
             }),
           });
@@ -2201,6 +2276,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
         return;
       }
       if (act === 'bag') { bagPanel(); return; }
+      if (act === 'code' && askCodeNow) { askCodeNow($('#code-in', sheetBody).value.trim()); return; }
       if (act === 'more' || act === 'less' || act === 'drop') {
         const bag = readBag();
         const i = bag.findIndex((l) => String(l.id) === String(el.dataset.id) && l.variant === el.dataset.key);

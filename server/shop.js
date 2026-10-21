@@ -9,6 +9,9 @@ const MAX_VARIANTS = 12;
 const MAX_LINES = 10;
 const MAX_QTY = 10;
 const MAX_PRICE_CENTS = 500000; // 5000 euro, a guard against a slipped comma
+const MAX_DISCOUNTS = 60;
+const CODE_RE = /^[A-Z0-9][A-Z0-9-]{2,23}$/;
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const EMAIL_RE = /^[^\s@<>()"',;:]{1,64}@[^\s@<>()"',;:]+\.[^\s@<>()"',;:]{2,}$/;
 
 /** where we ship, and what it costs; the owner can change all of this in the dashboard */
@@ -280,6 +283,151 @@ export function createShop({ db, media, payments, onOrderPaid = () => {} }) {
     return product.status === 'soldout' || product.variants.every((v) => v.stock <= 0);
   }
 
+  /* ----------------------------------------------------------- discounts */
+
+  const parseDiscount = (row) => ({ ...row });
+  const discounts = () => db.prepare('SELECT * FROM discounts ORDER BY status, code').all().map(parseDiscount);
+  const discountById = (id) => {
+    const row = db.prepare('SELECT * FROM discounts WHERE id = ?').get(Number(id));
+    if (!row) throw new HttpError(404, 'Code not found.');
+    return parseDiscount(row);
+  };
+  const discountByCode = (code) => {
+    const row = db.prepare('SELECT * FROM discounts WHERE code = ? COLLATE NOCASE').get(String(code ?? '').trim());
+    return row ? parseDiscount(row) : null;
+  };
+
+  /** a day in Amsterdam, so a code that runs "until the 31st" works all of the 31st here */
+  const today = () =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Amsterdam', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+
+  function discountFields(body) {
+    // read it long enough to see what was meant: a typed space is tidied away, but a code that is
+    // really too long is handed back rather than quietly cut in half
+    const code = oneLine(body.code, 80).toUpperCase().replace(/\s+/g, '');
+    if (!CODE_RE.test(code)) throw new HttpError(400, 'A code is 3 to 24 letters, numbers or dashes, like LENTE10.');
+    const kind = ['percent', 'amount', 'shipping'].includes(body.kind) ? body.kind : 'percent';
+    let value = 0;
+    if (kind === 'percent') {
+      value = Math.trunc(Number(body.value) || 0);
+      if (value < 1 || value > 95) throw new HttpError(400, 'A percentage runs from 1 to 95.');
+    } else if (kind === 'amount') {
+      value = cents(body.value) ?? 0;
+      if (value < 1 || value > MAX_PRICE_CENTS) throw new HttpError(400, 'Give an amount like 5,00.');
+    }
+    for (const [key, day] of [['starts_on', body.starts_on], ['ends_on', body.ends_on]]) {
+      const v = oneLine(day, 10);
+      if (v && !DAY_RE.test(v)) throw new HttpError(400, 'Use a date like 2026-12-31.');
+    }
+    const starts = oneLine(body.starts_on, 10) || null;
+    const ends = oneLine(body.ends_on, 10) || null;
+    if (starts && ends && ends < starts) throw new HttpError(400, 'The last day cannot be before the first day.');
+    return {
+      code,
+      kind,
+      value,
+      status: body.status === 'off' ? 'off' : 'live',
+      min_cents: Math.max(0, Math.min(MAX_PRICE_CENTS, cents(body.min_cents ?? body.min) ?? 0)),
+      starts_on: starts,
+      ends_on: ends,
+      max_uses: Math.max(0, Math.min(100000, Math.trunc(Number(body.max_uses) || 0))),
+      note: oneLine(body.note, 200),
+    };
+  }
+
+  function createDiscount(body) {
+    if (discounts().length >= MAX_DISCOUNTS) throw new HttpError(409, `There is room for ${MAX_DISCOUNTS} codes.`);
+    const f = discountFields(body);
+    if (discountByCode(f.code)) throw new HttpError(409, 'That code already exists.');
+    const stamp = now();
+    const r = db
+      .prepare(
+        `INSERT INTO discounts (code, kind, value, status, min_cents, starts_on, ends_on, max_uses, used, note, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
+      )
+      .run(f.code, f.kind, f.value, f.status, f.min_cents, f.starts_on, f.ends_on, f.max_uses, f.note, stamp, stamp);
+    return discountById(Number(r.lastInsertRowid));
+  }
+
+  function updateDiscount(id, body) {
+    const current = discountById(id);
+    const f = discountFields({ ...current, ...body });
+    const clash = discountByCode(f.code);
+    if (clash && clash.id !== current.id) throw new HttpError(409, 'Another code already uses that name.');
+    db.prepare(
+      `UPDATE discounts SET code = ?, kind = ?, value = ?, status = ?, min_cents = ?, starts_on = ?, ends_on = ?,
+         max_uses = ?, note = ?, updated_at = ? WHERE id = ?`,
+    ).run(f.code, f.kind, f.value, f.status, f.min_cents, f.starts_on, f.ends_on, f.max_uses, f.note, now(), current.id);
+    return discountById(current.id);
+  }
+
+  function removeDiscount(id) {
+    const d = discountById(id);
+    db.prepare('DELETE FROM discounts WHERE id = ?').run(d.id);
+    return { ok: true };
+  }
+
+  /**
+   * What a code is worth for this bag, right now. Everything a browser says is ignored: the
+   * subtotal is the one we worked out ourselves and the rules come from our own row.
+   */
+  function priceWithDiscount(code, subtotal, shipping) {
+    const empty = { code: null, kind: null, cents: 0, freeShipping: false, label: '' };
+    const wanted = String(code ?? '').trim();
+    if (!wanted) return empty;
+    const d = discountByCode(wanted);
+    if (!d || d.status !== 'live') throw new HttpError(404, 'We do not know that code.');
+    const day = today();
+    if (d.starts_on && day < d.starts_on) throw new HttpError(409, 'That code cannot be used yet.');
+    if (d.ends_on && day > d.ends_on) throw new HttpError(409, 'That code has expired.');
+    if (d.max_uses && d.used >= d.max_uses) throw new HttpError(409, 'That code has been used up.');
+    if (subtotal < d.min_cents) throw new HttpError(409, `That code starts at ${euro(d.min_cents)}.`);
+    if (d.kind === 'shipping') {
+      return { code: d.code, kind: d.kind, cents: 0, freeShipping: true, label: 'Free shipping' };
+    }
+    const off = d.kind === 'percent' ? Math.round((subtotal * d.value) / 100) : d.value;
+    const cut = Math.max(0, Math.min(subtotal, off));
+    if (subtotal - cut + (shipping ? shipping.cents : 0) <= 0) {
+      throw new HttpError(409, 'That code covers the whole order; write to us and we sort it out by hand.');
+    }
+    return {
+      code: d.code,
+      kind: d.kind,
+      cents: cut,
+      freeShipping: false,
+      label: d.kind === 'percent' ? `${d.value}% off` : `${euro(d.value)} off`,
+    };
+  }
+
+  /** what the bag page asks before anyone pays, so the total on screen is the real one */
+  function quoteDiscount(body) {
+    const items = Array.isArray(body.items) ? body.items.slice(0, MAX_LINES) : [];
+    let subtotal = 0;
+    for (const line of items) {
+      const product = productById(line.product_id);
+      const variant = product.variants.find((v) => v.key === oneLine(line.variant, 40));
+      if (!variant) continue;
+      const qty = Math.max(1, Math.min(MAX_QTY, Math.trunc(Number(line.qty)) || 1));
+      subtotal += product.price_cents * qty;
+    }
+    const s = settings();
+    const pickup = Boolean(body.pickup) && s.pickup.enabled;
+    const country = pickup ? '' : oneLine(body.country, 2).toUpperCase();
+    const shipping = shippingFor(country, subtotal, pickup);
+    const cut = priceWithDiscount(body.code, subtotal, shipping);
+    const shippingCents = shipping ? (cut.freeShipping ? 0 : shipping.cents) : 0;
+    return {
+      ok: true,
+      code: cut.code,
+      label: cut.label,
+      discount_cents: cut.cents,
+      free_shipping: cut.freeShipping,
+      subtotal_cents: subtotal,
+      shipping_cents: shippingCents,
+      total_cents: Math.max(0, subtotal - cut.cents + shippingCents),
+    };
+  }
+
   /** everything a buyer sends is checked here, and the total is worked out from our own rows */
   async function placeOrder(body) {
     const s = settings();
@@ -320,7 +468,10 @@ export function createShop({ db, media, payments, onOrderPaid = () => {} }) {
 
     const shipping = shippingFor(country, subtotal, pickup);
     if (!shipping) throw new HttpError(400, 'We do not ship to that country yet.');
-    const total = subtotal + shipping.cents;
+    // the code is worth what our own rows say it is, whatever the browser sent along
+    const cut = priceWithDiscount(body.discount ?? body.code, subtotal, shipping);
+    const shippingCents = cut.freeShipping ? 0 : shipping.cents;
+    const total = subtotal - cut.cents + shippingCents;
     if (total <= 0) throw new HttpError(400, 'That order adds up to nothing.');
 
     const ref = orderRef();
@@ -329,8 +480,8 @@ export function createShop({ db, media, payments, onOrderPaid = () => {} }) {
     const r = db
       .prepare(
         `INSERT INTO orders (ref, token, status, name, email, phone, street, postcode, city, country, note, items,
-          subtotal_cents, shipping_cents, total_cents, created_at)
-         VALUES (?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          subtotal_cents, shipping_cents, total_cents, discount_code, discount_cents, created_at)
+         VALUES (?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         ref,
@@ -345,8 +496,10 @@ export function createShop({ db, media, payments, onOrderPaid = () => {} }) {
         text(body.note, 500) || null,
         JSON.stringify(items),
         subtotal,
-        shipping.cents,
+        shippingCents,
         total,
+        cut.code,
+        cut.cents,
         stamp,
       );
     const order = orderById(Number(r.lastInsertRowid));
@@ -362,8 +515,11 @@ export function createShop({ db, media, payments, onOrderPaid = () => {} }) {
     return { ok: true, ref, token, checkoutUrl: payment.checkoutUrl, total_cents: total, shipping: shipping.label };
   }
 
-  /** stock only moves when the money is in */
+  /** stock only moves when the money is in, and so does a code's counter */
   function takeStock(order) {
+    if (order.discount_code) {
+      db.prepare('UPDATE discounts SET used = used + 1, updated_at = ? WHERE code = ? COLLATE NOCASE').run(now(), order.discount_code);
+    }
     for (const line of order.items) {
       const row = db.prepare('SELECT * FROM products WHERE id = ?').get(line.product_id);
       if (!row) continue;
@@ -530,6 +686,11 @@ ${cards}
     removePhoto,
     orderPhotos,
     orderProducts,
+    discounts,
+    createDiscount,
+    updateDiscount,
+    removeDiscount,
+    quoteDiscount,
     orders,
     orderById,
     orderByToken,
@@ -542,7 +703,7 @@ ${cards}
     removeOrder,
     state,
     markup,
-    limits: { products: MAX_PRODUCTS, photos: MAX_PHOTOS, variants: MAX_VARIANTS, qty: MAX_QTY },
+    limits: { products: MAX_PRODUCTS, photos: MAX_PHOTOS, variants: MAX_VARIANTS, qty: MAX_QTY, discounts: MAX_DISCOUNTS },
     mediaNames: () => products().flatMap((p) => p.images.flatMap((img) => media.names(img))),
   };
 }

@@ -129,6 +129,23 @@ export function openDb(dataDir) {
     );
     CREATE INDEX IF NOT EXISTS orders_created ON orders (created_at DESC);
 
+    -- codes the owner hands out; the server is the only one that decides what they are worth
+    CREATE TABLE IF NOT EXISTS discounts (
+      id         INTEGER PRIMARY KEY,
+      code       TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      kind       TEXT NOT NULL CHECK (kind IN ('percent', 'amount', 'shipping')),
+      value      INTEGER NOT NULL DEFAULT 0,  -- percent: 1-95, amount: cents, shipping: unused
+      status     TEXT NOT NULL DEFAULT 'live' CHECK (status IN ('live', 'off')),
+      min_cents  INTEGER NOT NULL DEFAULT 0,  -- the order has to be at least this much
+      starts_on  TEXT,                        -- YYYY-MM-DD, or null for "right away"
+      ends_on    TEXT,                        -- YYYY-MM-DD, or null for "no end"
+      max_uses   INTEGER NOT NULL DEFAULT 0,  -- 0 means as often as people like
+      used       INTEGER NOT NULL DEFAULT 0,
+      note       TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
     -- events that happened, with their photo sets; visitors can download each photo
     CREATE TABLE IF NOT EXISTS events (
       id         INTEGER PRIMARY KEY,
@@ -151,6 +168,11 @@ export function openDb(dataDir) {
       expires_at TEXT NOT NULL
     );
   `);
+
+  // Orders were plain before discount codes existed; the columns are added to older databases here.
+  const orderColumns = db.prepare('PRAGMA table_info(orders)').all().map((c) => c.name);
+  if (!orderColumns.includes('discount_code')) db.exec('ALTER TABLE orders ADD COLUMN discount_code TEXT');
+  if (!orderColumns.includes('discount_cents')) db.exec('ALTER TABLE orders ADD COLUMN discount_cents INTEGER NOT NULL DEFAULT 0');
 
   // Members gave only an email at first; these came later and are added to older databases here.
   const columns = db.prepare('PRAGMA table_info(subscribers)').all().map((c) => c.name);

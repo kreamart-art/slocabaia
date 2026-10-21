@@ -170,9 +170,16 @@ function orderLines(order) {
         `<td align="right" style="padding:6px 0;color:${INK};white-space:nowrap">${money(i.price_cents * i.qty)}</td></tr>`,
     )
     .join('');
+  const cut = Number(order.discount_cents) || 0;
+  const code = order.discount_code
+    ? `<tr><td style="padding:10px 0 0;border-top:1px solid #2a2a2a;color:${BODY}">Discount <span style="color:${ASH}">${esc(order.discount_code)}</span></td>` +
+      `<td align="right" style="padding:10px 0 0;border-top:1px solid #2a2a2a;color:${INK}">${cut ? `-${money(cut)}` : 'free shipping'}</td></tr>`
+    : '';
+  const line = code ? 'padding:6px 0 0' : 'padding:10px 0 0;border-top:1px solid #2a2a2a';
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;font-size:15px">
     ${rows}
-    <tr><td style="padding:10px 0 0;border-top:1px solid #2a2a2a;color:${BODY}">Shipping</td><td align="right" style="padding:10px 0 0;border-top:1px solid #2a2a2a;color:${INK}">${order.shipping_cents ? money(order.shipping_cents) : 'free'}</td></tr>
+    ${code}
+    <tr><td style="${line};color:${BODY}">Shipping</td><td align="right" style="${line};color:${INK}">${order.shipping_cents ? money(order.shipping_cents) : 'free'}</td></tr>
     <tr><td style="padding:6px 0 0;color:${INK};font-weight:bold">Total</td><td align="right" style="padding:6px 0 0;color:${INK};font-weight:bold">${money(order.total_cents)}</td></tr>
   </table>`;
 }
@@ -199,7 +206,9 @@ export function renderOrderEmail({ order, siteUrl }) {
   });
   const lines = order.items.map((i) => `${i.qty}x ${i.name}${i.variant ? ` (${i.variant})` : ''}`).join('\n');
   const text =
-    `Thank you, ${order.name}.\n\nOrder ${order.ref}\n\n${lines}\n\nShipping: ${(order.shipping_cents / 100).toFixed(2)}\n` +
+    `Thank you, ${order.name}.\n\nOrder ${order.ref}\n\n${lines}\n\n` +
+    (order.discount_code ? `Discount ${order.discount_code}: -${((Number(order.discount_cents) || 0) / 100).toFixed(2)}\n` : '') +
+    `Shipping: ${(order.shipping_cents / 100).toFixed(2)}\n` +
     `Total: ${(order.total_cents / 100).toFixed(2)}\n\nQuestions? Reply to this email.\n${siteUrl}\n`;
   return { to: order.email, subject: `Your Slocabaia order ${order.ref}`, html, text };
 }
@@ -234,7 +243,9 @@ export function renderOrderPage({ order, siteUrl }) {
           title: 'Thank you',
           body:
             `<p>Your payment came through. Order <b>${esc(order.ref)}</b> is with us and a receipt is on its way to ${esc(order.email)}.</p>` +
-            `<p class="sum">${order.items.map((i) => `${esc(i.qty)}x ${esc(i.name)}${i.variant ? ` (${esc(i.variant)})` : ''}`).join('<br>')}<br><b>Total ${money(order.total_cents)}</b></p>`,
+            `<p class="sum">${order.items.map((i) => `${esc(i.qty)}x ${esc(i.name)}${i.variant ? ` (${esc(i.variant)})` : ''}`).join('<br>')}` +
+            `${order.discount_code ? `<br>Discount ${esc(order.discount_code)}${Number(order.discount_cents) ? ` &minus;${money(order.discount_cents)}` : ''}` : ''}` +
+            `<br><b>Total ${money(order.total_cents)}</b></p>`,
         }
       : order.status === 'open'
         ? { title: 'Waiting for the bank', body: `<p>Order <b>${esc(order.ref)}</b> is in, but the payment has not come through yet. Refresh this page in a minute. You also get an email as soon as it lands.</p>` }

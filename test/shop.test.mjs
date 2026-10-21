@@ -977,6 +977,203 @@ describe('a shop without a payment key', needFfmpeg, () => {
   });
 });
 
+/* ================================================================== discount codes */
+
+describe('discount codes', needFfmpeg, () => {
+  let S;
+  let M;
+  let api;
+  let piece;
+  before(async () => {
+    M = await startMollie();
+    S = await startServer({ mollieBase: M.base, trustProxy: true });
+    ({ api } = await signIn(S));
+    piece = await sellable(api, { name: 'Code piece', price: '100,00', sizes: [{ label: 'One size', stock: 50 }] });
+  });
+  after(async () => {
+    await S?.stop();
+    await M?.close();
+  });
+
+  const items = (qty = 1) => [{ product_id: piece.id, variant: piece.variants[0].key, qty }];
+  const buyer = { name: 'Code Buyer', email: 'code@example.com', street: 'Street 1', postcode: '1000 AA', city: 'Town', country: 'NL' };
+  const order = (body) => S.req('POST', '/api/shop/order', { body, headers: { 'x-forwarded-for': nextIp() } });
+  const quote = (body) => S.req('POST', '/api/shop/discount', { body, headers: { 'x-forwarded-for': nextIp() } });
+  const make = (body) => api('POST', '/api/admin/discounts', body);
+  const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Amsterdam', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const day = (shift) => {
+    const d = new Date(`${today()}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + shift);
+    return d.toISOString().slice(0, 10);
+  };
+
+  test('a code is a name, a kind and a worth, and nonsense is refused', async () => {
+    const ok = await make({ code: 'lente10', kind: 'percent', value: 10 });
+    assert.equal(ok.status, 201, ok.text);
+    assert.equal(ok.json.code, 'LENTE10', 'codes are stored in capitals');
+    assert.equal(ok.json.status, 'live');
+    assert.equal(ok.json.used, 0);
+
+    for (const bad of [{ code: 'ab' }, { code: '' }, { code: 'code!' }, { code: '-start' }, { code: 'deze code is veel te lang om te onthouden' }]) {
+      const r = await make({ kind: 'percent', value: 10, ...bad });
+      assert.equal(r.status, 400, `${JSON.stringify(bad)}: ${r.text}`);
+    }
+    // a typed space is tidied away rather than thrown back at the owner
+    const spaced = await make({ code: 'zomer 20', kind: 'percent', value: 20 });
+    assert.equal(spaced.status, 201, spaced.text);
+    assert.equal(spaced.json.code, 'ZOMER20');
+    await api('DELETE', `/api/admin/discounts/${spaced.json.id}`);
+    for (const bad of [0, 96, -5]) {
+      const r = await make({ code: `PCT${Math.abs(bad)}`, kind: 'percent', value: bad });
+      assert.equal(r.status, 400, `${bad}%: ${r.text}`);
+    }
+    const twice = await make({ code: 'LENTE10', kind: 'percent', value: 20 });
+    assert.equal(twice.status, 409, 'the same name twice is refused');
+    const backwards = await make({ code: 'BACKWARDS', kind: 'percent', value: 10, starts_on: day(5), ends_on: day(1) });
+    assert.equal(backwards.status, 400, backwards.text);
+  });
+
+  test('a percentage comes off the pieces, not off the shipping', async () => {
+    const q = await quote({ code: 'lente10', items: items(1), country: 'NL' });
+    assert.equal(q.status, 200, q.text);
+    assert.equal(q.json.code, 'LENTE10');
+    assert.equal(q.json.subtotal_cents, 10000);
+    assert.equal(q.json.discount_cents, 1000);
+    assert.equal(q.json.shipping_cents, 495, 'shipping is untouched');
+    assert.equal(q.json.total_cents, 10000 - 1000 + 495);
+
+    const r = await order({ ...buyer, items: items(1), discount: 'LeNtE10' });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.total_cents, 9495);
+    const o = (await api('GET', '/api/admin/shop')).json.orders.find((x) => x.ref === r.json.ref);
+    assert.equal(o.discount_code, 'LENTE10');
+    assert.equal(o.discount_cents, 1000);
+    assert.equal(o.subtotal_cents, 10000);
+  });
+
+  test('an amount and free shipping work too', async () => {
+    await make({ code: 'VIJFEURO', kind: 'amount', value: '5,00' });
+    const a = await quote({ code: 'VIJFEURO', items: items(1), country: 'NL' });
+    assert.equal(a.json.discount_cents, 500);
+    assert.equal(a.json.total_cents, 10000 - 500 + 495);
+
+    await make({ code: 'GRATISPOST', kind: 'shipping' });
+    const b = await quote({ code: 'GRATISPOST', items: items(1), country: 'DE' });
+    assert.equal(b.json.discount_cents, 0);
+    assert.equal(b.json.free_shipping, true);
+    assert.equal(b.json.shipping_cents, 0, 'the 7,95 for Germany falls away');
+    assert.equal(b.json.total_cents, 10000);
+
+    const r = await order({ ...buyer, country: 'DE', items: items(1), discount: 'GRATISPOST' });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.total_cents, 10000);
+    const o = (await api('GET', '/api/admin/shop')).json.orders.find((x) => x.ref === r.json.ref);
+    assert.equal(o.shipping_cents, 0);
+    assert.equal(o.discount_code, 'GRATISPOST');
+  });
+
+  test('a code the browser made up is worth nothing', async () => {
+    const q = await quote({ code: 'IWISH', items: items(1), country: 'NL' });
+    assert.equal(q.status, 404, q.text);
+    const r = await order({ ...buyer, items: items(1), discount: 'IWISH' });
+    assert.equal(r.status, 404, r.text);
+    // and a browser that invents its own numbers is simply ignored
+    const sneaky = await order({ ...buyer, items: items(1), discount: 'LENTE10', discount_cents: 9999, total_cents: 1 });
+    assert.equal(sneaky.status, 200, sneaky.text);
+    assert.equal(sneaky.json.total_cents, 9495, 'our sums, not theirs');
+  });
+
+  test('off, not started, expired, used up and under the minimum are all refused', async () => {
+    await make({ code: 'SLAPEND', kind: 'percent', value: 10, status: 'off' });
+    assert.equal((await quote({ code: 'SLAPEND', items: items(1), country: 'NL' })).status, 404);
+
+    await make({ code: 'STRAKS', kind: 'percent', value: 10, starts_on: day(3) });
+    const early = await quote({ code: 'STRAKS', items: items(1), country: 'NL' });
+    assert.equal(early.status, 409);
+    assert.match(early.json.error, /yet/i);
+
+    await make({ code: 'VERLOPEN', kind: 'percent', value: 10, ends_on: day(-1) });
+    const late = await quote({ code: 'VERLOPEN', items: items(1), country: 'NL' });
+    assert.equal(late.status, 409);
+    assert.match(late.json.error, /expired/i);
+
+    await make({ code: 'VANAF200', kind: 'percent', value: 10, min_cents: '200,00' });
+    const small = await quote({ code: 'VANAF200', items: items(1), country: 'NL' });
+    assert.equal(small.status, 409);
+    assert.match(small.json.error, /200/);
+    const big = await quote({ code: 'VANAF200', items: items(2), country: 'NL' });
+    assert.equal(big.status, 200, big.text);
+    assert.equal(big.json.discount_cents, 2000);
+
+    // a code that ends today still works today
+    await make({ code: 'VANDAAG', kind: 'percent', value: 10, ends_on: today() });
+    assert.equal((await quote({ code: 'VANDAAG', items: items(1), country: 'NL' })).status, 200);
+  });
+
+  test('the counter moves when the money is in, not before, and stops at the limit', async () => {
+    const made = await make({ code: 'EENMALIG', kind: 'percent', value: 50, max_uses: 1 });
+    assert.equal(made.status, 201, made.text);
+    const r = await order({ ...buyer, items: items(1), discount: 'EENMALIG' });
+    assert.equal(r.status, 200, r.text);
+    const open = (await api('GET', '/api/admin/shop')).json.discounts.find((d) => d.code === 'EENMALIG');
+    assert.equal(open.used, 0, 'an order that is not paid for does not burn the code');
+
+    await M.settle(S, M.last().id, 'paid');
+    const after = await waitFor(async () => {
+      const d = (await api('GET', '/api/admin/shop')).json.discounts.find((x) => x.code === 'EENMALIG');
+      return d.used === 1 ? d : null;
+    }, { what: 'the counter to move' });
+    assert.equal(after.used, 1);
+
+    const spent = await quote({ code: 'EENMALIG', items: items(1), country: 'NL' });
+    assert.equal(spent.status, 409, spent.text);
+    assert.match(spent.json.error, /used up/i);
+  });
+
+  test('a code cannot make an order free', async () => {
+    await make({ code: 'BIJNAALLES', kind: 'amount', value: '100,00' });
+    const q = await quote({ code: 'BIJNAALLES', items: items(1), country: 'NL' });
+    assert.equal(q.status, 200, 'shipping is still due, so this is fine');
+    assert.equal(q.json.total_cents, 495);
+    const pickedUp = await quote({ code: 'BIJNAALLES', items: items(1), pickup: true, country: 'NL' });
+    assert.ok(pickedUp.status === 200 || pickedUp.status === 409, pickedUp.text);
+  });
+
+  test('editing and removing a code', async () => {
+    const made = await make({ code: 'TIJDELIJK', kind: 'percent', value: 10 });
+    const off = await api('PUT', `/api/admin/discounts/${made.json.id}`, { status: 'off' });
+    assert.equal(off.status, 200, off.text);
+    assert.equal(off.json.status, 'off');
+    assert.equal(off.json.code, 'TIJDELIJK', 'what is left out stays as it was');
+    assert.equal(off.json.value, 10);
+    const renamed = await api('PUT', `/api/admin/discounts/${made.json.id}`, { code: 'ANDERS', status: 'live' });
+    assert.equal(renamed.json.code, 'ANDERS');
+    const clash = await api('PUT', `/api/admin/discounts/${made.json.id}`, { code: 'LENTE10' });
+    assert.equal(clash.status, 409, 'two codes cannot share a name');
+    const gone = await api('DELETE', `/api/admin/discounts/${made.json.id}`);
+    assert.equal(gone.status, 200);
+    assert.equal((await quote({ code: 'ANDERS', items: items(1), country: 'NL' })).status, 404);
+  });
+
+  test('the code endpoints need a session, and guessing is rate limited', async () => {
+    for (const [method, path, body] of [
+      ['POST', '/api/admin/discounts', { code: 'SNEAKY', kind: 'percent', value: 50 }],
+      ['PUT', '/api/admin/discounts/1', { status: 'off' }],
+      ['DELETE', '/api/admin/discounts/1', undefined],
+    ]) {
+      const r = await S.req(method, path, { body, headers: { 'x-sloca-admin': '1' } });
+      assert.equal(r.status, 401, `${method} ${path}`);
+    }
+    const ip = '198.51.100.21';
+    let limited = 0;
+    for (let i = 0; i < 14; i++) {
+      const r = await S.req('POST', '/api/shop/discount', { body: { code: `GUESS${i}`, items: items(1), country: 'NL' }, headers: { 'x-forwarded-for': ip } });
+      if (r.status === 429) limited += 1;
+    }
+    assert.ok(limited > 0, 'someone trying every word in the dictionary is cut off');
+  });
+});
+
 /* ================================================================== events */
 
 describe('events: photo sets of nights that happened', needFfmpeg, () => {
