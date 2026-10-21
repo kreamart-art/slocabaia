@@ -391,8 +391,14 @@ export function createShop({ db, media, payments, onOrderPaid = () => {} }) {
     const payment = await payments.get(paymentId);
     const next = MOLLIE_TO_US[payment.status];
     if (!next || next === order.status || order.status === 'shipped') return { ok: true, status: order.status };
+    // Mollie's webhook and the buyer landing on the thank-you page can arrive in the same breath,
+    // and both of them waited on the call above. Only the one that actually moves the row off
+    // 'open' may take the stock and send the mail; the other finds nothing left to change.
     if (next === 'paid') {
-      db.prepare("UPDATE orders SET status = 'paid', paid_at = ?, payment_method = ? WHERE id = ?").run(payment.paidAt || now(), payment.method || null, order.id);
+      const moved = db
+        .prepare("UPDATE orders SET status = 'paid', paid_at = ?, payment_method = ? WHERE id = ? AND status = 'open'")
+        .run(payment.paidAt || now(), payment.method || null, order.id);
+      if (!moved.changes) return { ok: true, status: orderById(order.id).status };
       takeStock(order);
       const paid = orderById(order.id);
       try {
@@ -402,8 +408,8 @@ export function createShop({ db, media, payments, onOrderPaid = () => {} }) {
       }
       return { ok: true, status: 'paid' };
     }
-    db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(next, order.id);
-    return { ok: true, status: next };
+    const moved = db.prepare("UPDATE orders SET status = ? WHERE id = ? AND status = 'open'").run(next, order.id);
+    return { ok: true, status: moved.changes ? next : orderById(order.id).status };
   }
 
   /** the thank-you page: an order is only ever shown through its secret token */

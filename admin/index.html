@@ -772,8 +772,9 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
           <strong>Markeer als verzonden</strong> en stuur de klant via <strong>Antwoord via Gmail</strong>
           het pakketnummer. Dat laatste doet de site niet voor je, dat blijft jouw mail.</p>
           <p><strong>Terugbetalen doe je bij Mollie</strong>, niet hier. Log in op Mollie, zoek het
-          bestelnummer en kies "refund". Daarna kun je de bestelling hier op verzonden laten staan of
-          verwijderen.</p>
+          bestelnummer en kies "refund". De bestelling zelf blijft hier staan: wat betaald is hoort in
+          de boeken en moet zeven jaar bewaard blijven. Alleen bestellingen die nooit betaald zijn kun
+          je weggooien.</p>
 
           <h3>Verzendkosten</h3>
           <p>Onderaan deze pagina staan de zones. Per zone geef je de landen en de prijs. Een land dat
@@ -1849,14 +1850,17 @@ dialog.sheet{width:min(460px,calc(100% - 24px));padding:0}
               await loadShop();
             } catch (ex) { if (ex.status !== 401) toast(`Dat lukte niet: ${ex.message}`); }
           } }) : null),
-        h('button', { class: 'link-btn link-btn--danger', type: 'button', text: 'Verwijderen', onclick: async () => {
-          if (!(await confirmDialog('Bestelling verwijderen?', `${o.ref} verdwijnt uit dit overzicht. Een eventuele terugbetaling regel je bij Mollie; dat gebeurt hier niet.`, 'Verwijderen'))) return;
-          try {
-            await api(`orders/${o.id}`, { method: 'DELETE' });
-            toast('Bestelling verwijderd.');
-            await loadShop();
-          } catch (ex) { if (ex.status !== 401) toast(`Dat lukte niet: ${ex.message}`); }
-        } })));
+        /* a paid order belongs in the books and cannot be thrown away; the others are just noise */
+        o.status === 'paid' || o.status === 'shipped'
+          ? h('span', { class: 'sub', text: 'Betaalde bestellingen blijven bewaard' })
+          : h('button', { class: 'link-btn link-btn--danger', type: 'button', text: 'Verwijderen', onclick: async () => {
+              if (!(await confirmDialog('Bestelling verwijderen?', `${o.ref} is niet betaald en verdwijnt uit dit overzicht.`, 'Verwijderen'))) return;
+              try {
+                await api(`orders/${o.id}`, { method: 'DELETE' });
+                toast('Bestelling verwijderd.');
+                await loadShop();
+              } catch (ex) { if (ex.status !== 401) toast(`Dat lukte niet: ${ex.message}`); }
+            } })));
     const row = h('details', { class: 'row', id: `ord-${o.id}` },
       h('summary', {},
         h('span', { class: 'row__t' },

@@ -741,6 +741,73 @@ describe('ordering: money, stock and mail', needFfmpeg, () => {
   });
 });
 
+/* ================================================================== one payment, two reports */
+
+describe('a payment reported twice at the same moment', needFfmpeg, () => {
+  let S;
+  let M;
+  let api;
+  before(async () => {
+    M = await startMollie();
+    S = await startServer({ mollieBase: M.base, trustProxy: true });
+    ({ api } = await signIn(S));
+  });
+  after(async () => {
+    await S?.stop();
+    await M?.close();
+  });
+
+  const buyer = { name: 'Race Buyer', email: 'race@example.com', street: 'Street 1', postcode: '1000 AA', city: 'Town', country: 'NL' };
+  const order = (body) => S.req('POST', '/api/shop/order', { body, headers: { 'x-forwarded-for': nextIp() } });
+
+  test('Mollie\'s webhook and the thank-you page together take the stock once', async () => {
+    const piece = await sellable(api, { name: 'Race piece', price: '30,00', sizes: [{ label: 'One size', stock: 4 }] });
+    const key = piece.variants[0].key;
+    const r = await order({ ...buyer, items: [{ product_id: piece.id, variant: key, qty: 2 }] });
+    assert.equal(r.status, 200, r.text);
+    const paymentId = M.last().id;
+    const p = M.payments.get(paymentId);
+    p.status = 'paid';
+    p.method = 'ideal';
+    p.paidAt = new Date().toISOString();
+
+    // both arrive in the same breath, and both waited on the same read from Mollie
+    const [w, t] = await Promise.all([
+      S.req('POST', '/api/shop/webhook', { body: `id=${encodeURIComponent(paymentId)}`, headers: { 'content-type': 'application/x-www-form-urlencoded' } }),
+      S.req('GET', `/shop/thanks?t=${r.json.token}`),
+    ]);
+    assert.equal(w.status, 200);
+    assert.equal(t.status, 200);
+
+    const shop = await waitFor(async () => {
+      const d = await api('GET', '/api/admin/shop');
+      const o = d.json.orders.find((x) => x.ref === r.json.ref);
+      return o && o.status === 'paid' ? d.json : null;
+    }, { what: 'the order to turn paid' });
+    const fresh = shop.products.find((x) => x.id === piece.id);
+    assert.equal(fresh.variants[0].stock, 2, 'two sold out of four, not four');
+    assert.equal(shop.orders.filter((x) => x.ref === r.json.ref).length, 1);
+    assert.equal(mailsTo(S, 'race@example.com').length, 1, 'the buyer is thanked once, not twice');
+    assert.equal(shop.unread, 1, 'and it counts as one new order');
+  });
+
+  test('a paid order cannot be thrown away, an unpaid one can', async () => {
+    const d = await api('GET', '/api/admin/shop');
+    const paid = d.json.orders.find((x) => x.status === 'paid');
+    const kept = await api('DELETE', `/api/admin/orders/${paid.id}`);
+    assert.equal(kept.status, 409, kept.text);
+    assert.match(kept.json.error, /books/i);
+
+    const piece = await sellable(api, { name: 'Unpaid piece', price: '10,00', sizes: [{ label: 'One size', stock: 1 }] });
+    const r = await order({ ...buyer, items: [{ product_id: piece.id, variant: piece.variants[0].key, qty: 1 }] });
+    const open = (await api('GET', '/api/admin/shop')).json.orders.find((x) => x.ref === r.json.ref);
+    assert.equal(open.status, 'open');
+    const gone = await api('DELETE', `/api/admin/orders/${open.id}`);
+    assert.equal(gone.status, 200, gone.text);
+    assert.ok(!(await api('GET', '/api/admin/shop')).json.orders.some((x) => x.ref === r.json.ref));
+  });
+});
+
 /* ================================================================== shipping zones */
 
 describe('shipping: zones, free over, pickup', needFfmpeg, () => {
